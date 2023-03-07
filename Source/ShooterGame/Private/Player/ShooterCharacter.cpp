@@ -67,6 +67,8 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+
+	TeleportDistance = 1000.f; //about 10 meters
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -884,6 +886,8 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AShooterCharacter::OnStartRunning);
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
+
+	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::Teleport);
 }
 
 
@@ -946,6 +950,25 @@ void AShooterCharacter::LookUpAtRate(float Val)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Val * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AShooterCharacter::Teleport()
+{
+	if (Controller) {
+		if (IsLocallyControlled()) {
+			FVector CLocation = GetActorLocation();
+
+			FRotator CRotation = GetActorRotation();
+			FVector CDirection = CRotation.Vector();
+
+			FVector TargetLocation = CLocation + (CDirection * TeleportDistance);
+
+			SetActorLocation(TargetLocation);
+		}
+		if (GetLocalRole() == ROLE_Authority) {
+
+		}
+	}
 }
 
 void AShooterCharacter::OnStartFire()

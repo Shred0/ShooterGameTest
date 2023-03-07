@@ -165,6 +165,9 @@ class AShooterCharacter : public ACharacter
 	/* Frame rate independent lookup */
 	void LookUpAtRate(float Val);
 
+	/* Teleport */
+	void Teleport();
+
 	/** player pressed start fire action */
 	void OnStartFire();
 
@@ -320,6 +323,9 @@ protected:
 
 	/** from gamepad running is toggled */
 	uint8 bWantsToRunToggled : 1;
+
+	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+		float TeleportDistance;
 
 	/** current firing state */
 	uint8 bWantsToFire : 1;
