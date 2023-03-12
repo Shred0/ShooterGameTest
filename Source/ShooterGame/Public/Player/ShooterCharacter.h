@@ -165,7 +165,12 @@ class AShooterCharacter : public ACharacter
 	/* Frame rate independent lookup */
 	void LookUpAtRate(float Val);
 
-	/* Teleport */
+
+	/* action binding called to teleport*/
+	void OnTeleport();
+
+	/* [server + local] Teleport */
+	void HandleTeleport();
 	void Teleport();
 
 	/** player pressed start fire action */
@@ -324,8 +329,8 @@ protected:
 	/** from gamepad running is toggled */
 	uint8 bWantsToRunToggled : 1;
 
-	UPROPERTY(EditdefaultsOnly, Category = Mobility)
-		float TeleportDistance;
+	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = Mobility)
+	float TeleportDistance;
 
 	/** current firing state */
 	uint8 bWantsToFire : 1;
@@ -472,6 +477,10 @@ protected:
 
 	/** [server] remove all weapons from inventory and destroy them */
 	void DestroyInventory();
+
+	/** update targeting state */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerTeleport();
 
 	/** equip weapon */
 	UFUNCTION(reliable, server, WithValidation)

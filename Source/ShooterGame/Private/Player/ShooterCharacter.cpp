@@ -887,7 +887,7 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
 
-	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::Teleport);
+	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
 }
 
 
@@ -952,10 +952,11 @@ void AShooterCharacter::LookUpAtRate(float Val)
 	AddControllerPitchInput(Val * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-void AShooterCharacter::Teleport()
+void AShooterCharacter::OnTeleport()
 {
-	if (Controller) {
-		if (IsLocallyControlled()) {
+	AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(Controller);
+	if (MyPC && MyPC->IsGameInputAllowed()) {
+		/*if (IsLocallyControlled()) {
 			FVector CLocation = GetActorLocation();
 
 			FRotator CRotation = GetActorRotation();
@@ -965,10 +966,57 @@ void AShooterCharacter::Teleport()
 
 			SetActorLocation(TargetLocation);
 		}
-		if (GetLocalRole() == ROLE_Authority) {
+		if (GetLocalRole() < ROLE_Authority) {
 
-		}
+		}*/
+		HandleTeleport();
 	}
+}
+
+void AShooterCharacter::HandleTeleport()
+{
+	//play particle effect and sound
+
+	if (IsLocallyControlled()) {
+		Teleport();
+	}
+	if (GetLocalRole() < ROLE_Authority) {
+		ServerTeleport();
+	}
+}
+
+void AShooterCharacter::Teleport()
+{
+	//play particle effect and sound
+
+	FVector CLocation = GetActorLocation();
+
+	FRotator CRotation = GetActorRotation();
+	FVector CDirection = CRotation.Vector();
+
+	FVector TargetLocation = CLocation + (CDirection * TeleportDistance);
+
+	SetActorLocation(TargetLocation);
+}
+
+bool AShooterCharacter::ServerTeleport_Validate()
+{
+	//chekt that it is almost 10m from previous location
+	return true;
+}
+
+void AShooterCharacter::ServerTeleport_Implementation()
+{
+	Teleport();
+
+	/*FVector CLocation = GetActorLocation();
+
+	FRotator CRotation = GetActorRotation();
+	FVector CDirection = CRotation.Vector();
+
+	FVector TargetLocation = CLocation + (CDirection * TeleportDistance);
+
+	SetActorLocation(TargetLocation);*/
 }
 
 void AShooterCharacter::OnStartFire()
