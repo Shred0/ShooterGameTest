@@ -987,8 +987,6 @@ void AShooterCharacter::HandleTeleport()
 
 void AShooterCharacter::Teleport()
 {
-	//play particle effect and sound
-
 	FVector CLocation = GetActorLocation();
 
 	FRotator CRotation = GetActorRotation();
@@ -996,7 +994,105 @@ void AShooterCharacter::Teleport()
 
 	FVector TargetLocation = CLocation + (CDirection * TeleportDistance);
 
-	SetActorLocation(TargetLocation);
+	//check target location validity
+
+	//obtain set of traces created within the base teleport distance to predict the best target location
+	FCollisionQueryParams TraceParams(FName(TEXT("TeleportTrace")), true, this);
+	FCollisionShape TraceShape = FCollisionShape::MakeSphere(TeleportDistance);
+	//TArray<FHitResult> HitResults;
+	FHitResult HitResult;
+	//GetWorld()->SweepMultiByObjectType(HitResults, CLocation, TargetLocation, FQuat::Identity, FCollisionObjectQueryParams::AllObjects, TraceShape, TraceParams);
+
+	//find best position through set of traces
+	FVector BestLocation = TargetLocation;
+	float BestDistance = TeleportDistance;
+
+	//if my target position is available i can teleport there
+
+	/*for (const FHitResult& Result : HitResults) {
+		//GetWorld()->SpawnActor<AShooterPickup_Health>(Result.Location,FRotator::ZeroRotator);
+		//UE_LOG(LogTemp, Log, TEXT("%f, %f, %f"), Result.Location.X, Result.Location.Y, Result.Location.Z);
+		//UE_LOG(LogTemp, Log, TEXT("result %f"), Result.Distance);
+		UE_LOG(LogTemp, Log, TEXT("result %f"), (Result.Location - TargetLocation).Size());
+		if (Result.bBlockingHit) {
+			//find best valid distance based on original distance
+			float DistanceToResult = (Result.Location - TargetLocation).Size();
+			if (DistanceToResult < BestDistance) {
+				BestLocation = Result.Location;
+				BestDistance = DistanceToResult;
+				UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
+			}
+		}
+	}*/
+
+	// Check for collisions in all directions in a sphere
+	/*int NumDirections = 256;
+	//float TurnFraction = 0.618033; //golden ratio
+	//float TurnFraction = 0.1;
+	float TurnFraction = (1 + FMath::Sqrt(5)) / 2; //Golden Ratio
+	//float Angle;
+	float Inclination;
+	float Azimuth;
+	FVector EndLocation;
+	//FVector Direction;
+	float DistanceToResult;
+	for (int i = 0; i < NumDirections; i++) {
+		// Calculate the direction to check in
+		//Angle = (360.0f / NumDirections) * i;
+
+		//Inclination = PI / 2 - FMath::DegreesToRadians(Angle);
+		//Azimuth = FMath::DegreesToRadians(Angle);
+
+		float t = i / (NumDirections - 1.0f);
+		Inclination = FMath::Acos(1 - 2);
+		Azimuth = 2.0f * PI * TurnFraction * i;
+
+		//calculate end location of the sphere trace
+		EndLocation.X = FMath::Sin(Inclination) * FMath::Cos(Azimuth);
+		EndLocation.Y = FMath::Sin(Inclination) * FMath::Sin(Azimuth);
+		EndLocation.Z = FMath::Cos(Inclination);
+
+		EndLocation = EndLocation * (TeleportDistance / 5) + TargetLocation;
+
+		//DEBUG
+		bool dbg = true;
+		if (dbg) {
+			//UE_LOG(LogTemp, Log, TEXT("%f, %f, %f"), EndLocation.X, EndLocation.Y, EndLocation.Z);
+			//Direction = FRotator(0.0f, Angle, 0.0f).Vector();
+			//DrawDebugLine(GetWorld(), TargetLocation, EndLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+			DrawDebugPoint(GetWorld(), EndLocation, 8.0f, FColor::Red, false, 40.0f, 0);
+		}
+
+		//perform the sphere trace
+		GetWorld()->SweepSingleByChannel(HitResult, TargetLocation, EndLocation, FQuat::Identity, ECC_WorldDynamic, TraceShape, TraceParams);
+		
+		//find best valid distance based on original distance
+		if (HitResult.bBlockingHit) {
+			DistanceToResult = (HitResult.Location - TargetLocation).Size();
+			if (DistanceToResult < BestDistance) {
+				BestLocation = HitResult.Location;
+				BestDistance = DistanceToResult;
+				UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
+			}
+		}
+	}*/
+
+	//setting up navigation system to find the nearest location for shooting character outside of a collision shape
+	/*UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+	FNavLocation ProjectedLocation;
+	if (NavSys->ProjectPointToNavigation(TargetLocation, ProjectedLocation)) {
+		//play particle effect and sound
+		//...
+
+		SetActorLocation(ProjectedLocation.Location);
+	}
+	else {
+		//SetActorLocation(TargetLocation);
+	}*/
+
+	TeleportTo(TargetLocation, GetActorRotation());
+	//SetActorLocation(TargetLocation);
+	//SetActorLocation(BestLocation);
 }
 
 bool AShooterCharacter::ServerTeleport_Validate()
