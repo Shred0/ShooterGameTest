@@ -999,6 +999,8 @@ void AShooterCharacter::Teleport()
 	//obtain set of traces created within the base teleport distance to predict the best target location
 	FCollisionQueryParams TraceParams(FName(TEXT("TeleportTrace")), true, this);
 	FCollisionShape TraceShape = FCollisionShape::MakeSphere(TeleportDistance);
+	TraceParams.bTraceComplex = true;
+	TraceParams.AddIgnoredActor(this);
 	//TArray<FHitResult> HitResults;
 	FHitResult HitResult;
 	//GetWorld()->SweepMultiByObjectType(HitResults, CLocation, TargetLocation, FQuat::Identity, FCollisionObjectQueryParams::AllObjects, TraceShape, TraceParams);
@@ -1008,91 +1010,126 @@ void AShooterCharacter::Teleport()
 	float BestDistance = TeleportDistance;
 
 	//if my target position is available i can teleport there
+	UE_LOG(LogTemp, Log, TEXT("Target location: X=%f, Y=%f, Z=%f"), TargetLocation.X, TargetLocation.Y, TargetLocation.Z);
+	if (!TeleportTo(TargetLocation, CRotation)){
+		DrawDebugPoint(GetWorld(), TargetLocation, 8.0f, FColor::White, false, 40.0f, 0);
+		//ActorGetDistanceToCollision(TargetLocation, ECC_WorldStatic, BestLocation); //retirns nearest point to this character from TargetLocation
 
-	/*for (const FHitResult& Result : HitResults) {
-		//GetWorld()->SpawnActor<AShooterPickup_Health>(Result.Location,FRotator::ZeroRotator);
-		//UE_LOG(LogTemp, Log, TEXT("%f, %f, %f"), Result.Location.X, Result.Location.Y, Result.Location.Z);
-		//UE_LOG(LogTemp, Log, TEXT("result %f"), Result.Distance);
-		UE_LOG(LogTemp, Log, TEXT("result %f"), (Result.Location - TargetLocation).Size());
-		if (Result.bBlockingHit) {
-			//find best valid distance based on original distance
-			float DistanceToResult = (Result.Location - TargetLocation).Size();
-			if (DistanceToResult < BestDistance) {
-				BestLocation = Result.Location;
-				BestDistance = DistanceToResult;
-				UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
-			}
+		///solution 1
+		//setting up navigation system to find the nearest location for shooting character outside of a collision shape
+		/*UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+		FNavLocation ProjectedLocation;
+		if (NavSys->ProjectPointToNavigation(TargetLocation, ProjectedLocation)) {
+			//play particle effect and sound
+			//...
+
+			SetActorLocation(ProjectedLocation.Location);
 		}
-	}*/
+		else {
+			//SetActorLocation(TargetLocation);
+		}*/
 
-	// Check for collisions in all directions in a sphere
-	/*int NumDirections = 256;
-	//float TurnFraction = 0.618033; //golden ratio
-	//float TurnFraction = 0.1;
-	float TurnFraction = (1 + FMath::Sqrt(5)) / 2; //Golden Ratio
-	//float Angle;
-	float Inclination;
-	float Azimuth;
-	FVector EndLocation;
-	//FVector Direction;
-	float DistanceToResult;
-	for (int i = 0; i < NumDirections; i++) {
-		// Calculate the direction to check in
-		//Angle = (360.0f / NumDirections) * i;
+		///solution 2
+		// Check for collisions in all directions in a sphere
+		/*int NumDirections = 256;
+		//float TurnFraction = 0.618033; //golden ratio
+		//float TurnFraction = 0.1;
+		float TurnFraction = (1 + FMath::Sqrt(5)) / 2; //Golden Ratio
+		//float Angle;
+		float Inclination;
+		float Azimuth;
+		FVector EndLocation;
+		//FVector Direction;
+		float DistanceToResult;
+		for (int i = 0; i < NumDirections; i++) {
+			// Calculate the direction to check in
+			//Angle = (360.0f / NumDirections) * i;
 
-		//Inclination = PI / 2 - FMath::DegreesToRadians(Angle);
-		//Azimuth = FMath::DegreesToRadians(Angle);
+			//Inclination = PI / 2 - FMath::DegreesToRadians(Angle);
+			//Azimuth = FMath::DegreesToRadians(Angle);
 
-		float t = i / (NumDirections - 1.0f);
-		Inclination = FMath::Acos(1 - 2);
-		Azimuth = 2.0f * PI * TurnFraction * i;
+			float t = i / (NumDirections - 1.0f);
+			Inclination = FMath::Acos(1 - 2 * t);
+			Azimuth = 2.0f * PI * TurnFraction * i;
 
-		//calculate end location of the sphere trace
-		EndLocation.X = FMath::Sin(Inclination) * FMath::Cos(Azimuth);
-		EndLocation.Y = FMath::Sin(Inclination) * FMath::Sin(Azimuth);
-		EndLocation.Z = FMath::Cos(Inclination);
+			//calculate end location of the sphere trace
+			EndLocation.X = FMath::Sin(Inclination) * FMath::Cos(Azimuth);
+			EndLocation.Y = FMath::Sin(Inclination) * FMath::Sin(Azimuth);
+			EndLocation.Z = FMath::Cos(Inclination);
 
-		EndLocation = EndLocation * (TeleportDistance / 5) + TargetLocation;
+			EndLocation = EndLocation * (TeleportDistance) + TargetLocation;
 
-		//DEBUG
-		bool dbg = true;
-		if (dbg) {
+			//DEBUG
 			//UE_LOG(LogTemp, Log, TEXT("%f, %f, %f"), EndLocation.X, EndLocation.Y, EndLocation.Z);
 			//Direction = FRotator(0.0f, Angle, 0.0f).Vector();
 			//DrawDebugLine(GetWorld(), TargetLocation, EndLocation, FColor::Red, false, 40.0f, 0, 2.5f);
 			DrawDebugPoint(GetWorld(), EndLocation, 8.0f, FColor::Red, false, 40.0f, 0);
-		}
 
-		//perform the sphere trace
-		GetWorld()->SweepSingleByChannel(HitResult, TargetLocation, EndLocation, FQuat::Identity, ECC_WorldDynamic, TraceShape, TraceParams);
+			//perform the sphere trace
+			//GetWorld()->SweepSingleByChannel(HitResult, TargetLocation, EndLocation, FQuat::Identity, ECC_WorldDynamic, TraceShape, TraceParams);
+			GetWorld()->SweepMultiByChannel(HitResults, TargetLocation, EndLocation, FQuat::Identity, ECC_Visibility, TraceShape, TraceParams);
 		
-		//find best valid distance based on original distance
-		if (HitResult.bBlockingHit) {
-			DistanceToResult = (HitResult.Location - TargetLocation).Size();
-			if (DistanceToResult < BestDistance) {
-				BestLocation = HitResult.Location;
-				BestDistance = DistanceToResult;
-				UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
+			//find best valid distance based on original distance
+			for (const FHitResult& Result : HitResults) {
+				if (Result.bBlockingHit) {
+					DistanceToResult = (Result.Location - TargetLocation).Size();
+
+					///se distanza è 0 memorizzo elemento colpito
+
+					///prendo in considerazione punto più distante impattato con elemento colpito
+
+					if (DistanceToResult > 0 && DistanceToResult < BestDistance) {
+						UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
+						BestLocation = Result.Location;
+						BestDistance = DistanceToResult;
+					}
+				}
+				DrawDebugLine(GetWorld(), TargetLocation, BestLocation, FColor::Blue, false, 40.0f, 0, 2.5f);
+				DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Blue, false, 40.0f, 0);
 			}
+		}*/
+
+		///solution 3
+
+		///controllo se in linea di visione ho ostacoli, mi fermo alla prima collisione o fino a distanza di target
+		///e imposto valore ottenuto in best location
+
+		///controllo se dal punto raggiunto, puntando verso il basso ci sono collisioni, mi fermo all'altezza del
+		///target iniziale o alla prima collsione riscotrata
+
+		//ottengo punto e direzione di vista
+		FVector TEyePos;
+		GetActorEyesViewPoint(TEyePos, CRotation);
+		BestLocation.Z = TEyePos.Z;
+		//controllo collisioni fino a proiezione di target
+		DrawDebugPoint(GetWorld(), TEyePos, 8.0f, FColor::Red, false, 40.0f, 0);
+		DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Blue, false, 40.0f, 0);
+		GetWorld()->LineTraceSingleByChannel(HitResult, TEyePos, BestLocation, ECC_WorldStatic, TraceParams);
+		//se intercetto una collisione, sovrascrivo best location e nuova coordinata target
+		if (HitResult.bBlockingHit) {
+			BestLocation = HitResult.Location;
+			DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
+			TargetLocation.X = BestLocation.X;
+			TargetLocation.Y = BestLocation.Y;
+			DrawDebugPoint(GetWorld(), TargetLocation, 8.0f, FColor::Cyan, false, 40.0f, 0);
 		}
-	}*/
+		//controllo collisioni in basso verso target
+		DrawDebugLine(GetWorld(), TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+		GetWorld()->LineTraceSingleByChannel(HitResult, BestLocation, TargetLocation, ECC_WorldStatic, TraceParams);
+		BestLocation = TargetLocation;
+		//aggiorno best location
+		if (HitResult.bBlockingHit) {
+			BestLocation = HitResult.Location;
+			DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
+		}
+		TEyePos.X = BestLocation.X;
+		TEyePos.Y = BestLocation.Y;
+		DrawDebugLine(GetWorld(), TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
 
-	//setting up navigation system to find the nearest location for shooting character outside of a collision shape
-	/*UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
-	FNavLocation ProjectedLocation;
-	if (NavSys->ProjectPointToNavigation(TargetLocation, ProjectedLocation)) {
-		//play particle effect and sound
-		//...
-
-		SetActorLocation(ProjectedLocation.Location);
+		//effettuo il teletrasporto
+		UE_LOG(LogTemp, Log, TEXT("Best location: X=%f, Y=%f, Z=%f"), BestLocation.X, BestLocation.Y, BestLocation.Z);
+		TeleportTo(BestLocation, CRotation);
 	}
-	else {
-		//SetActorLocation(TargetLocation);
-	}*/
-
-	TeleportTo(TargetLocation, GetActorRotation());
-	//SetActorLocation(TargetLocation);
-	//SetActorLocation(BestLocation);
 }
 
 bool AShooterCharacter::ServerTeleport_Validate()
