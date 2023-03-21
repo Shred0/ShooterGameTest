@@ -35,6 +35,7 @@ AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(Ob
 
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HitTextureOb(TEXT("/Game/UI/HUD/HitIndicator"));
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDMainTextureOb(TEXT("/Game/UI/HUD/HUDMain"));
+	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAddedAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssets02TextureOb(TEXT("/Game/UI/HUD/HUDAssets02"));
 	static ConstructorHelpers::FObjectFinder<UTexture2D> LowHealthOverlayTextureOb(TEXT("/Game/UI/HUD/LowHealthOverlay"));
 
@@ -50,6 +51,7 @@ AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(Ob
 
 	HitNotifyTexture = HitTextureOb.Object;
 	HUDMainTexture = HUDMainTextureOb.Object;
+	HUDAddedAsset = HUDAddedAssetOb.Object;
 	HUDAssets02Texture = HUDAssets02TextureOb.Object;
 	LowHealthOverlayTexture = LowHealthOverlayTextureOb.Object;
 
@@ -76,6 +78,9 @@ AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	TimerIcon = UCanvas::MakeIcon(HUDMainTexture, 381, 93, 24, 24);
 	KilledIcon = UCanvas::MakeIcon(HUDMainTexture, 425, 92, 38, 36);
 	PlaceIcon = UCanvas::MakeIcon(HUDMainTexture, 250, 468, 21, 28);
+
+	AbilityIconTeleport = UCanvas::MakeIcon(HUDAddedAsset, 901, 285, 90, 95);
+	AbilityIconTeleportCooldown = UCanvas::MakeIcon(HUDAddedAsset, 903, 182, 90, 95);
 
 	Crosshair[EShooterCrosshairDirection::Left] = UCanvas::MakeIcon(HUDMainTexture, 43, 402, 25, 9); // left
 	Crosshair[EShooterCrosshairDirection::Right] = UCanvas::MakeIcon(HUDMainTexture, 88, 402, 25, 9); // right
@@ -136,7 +141,7 @@ FString AShooterHUD::GetTimeString(float TimeSeconds)
 	return TimeDesc;
 }
 
-void AShooterHUD::DrawWeaponHUD()
+void AShooterHUD::DrawWeaponHUD() 
 {
 	AShooterCharacter* MyPawn = CastChecked<AShooterCharacter>(GetOwningPawn());
 	AShooterWeapon* MyWeapon = MyPawn->GetWeapon();
@@ -645,6 +650,7 @@ void AShooterHUD::DrawHUD()
 		{
 			DrawHealth();
 			DrawWeaponHUD();
+			DrawAbilityIconTeleport();
 		}
 		else
 		{
@@ -717,6 +723,41 @@ void AShooterHUD::DrawDebugInfoString(const FString& Text, float PosX, float Pos
 	TextItem.Scale = FVector2D( ScaleUI, ScaleUI );
 	Canvas->DrawItem( TextItem );
 #endif
+}
+
+void AShooterHUD::DrawAbilityIconTeleport()
+{
+	AShooterCharacter* MyPawn = CastChecked<AShooterCharacter>(GetOwningPawn());
+	if(MyPawn){
+		FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), BigFont, HUDDark);
+		TextItem.EnableShadow(FLinearColor::Black);
+
+		const float AbilityIconOffsetX = 20;
+		const float AbilityIconOffsetY = 7;
+		const float AbilityIconBoxWidth = 65;
+
+		//Teleport icon draw position
+		const float AbilityIconPosX = ((Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2) + HealthBarBg.UL * ScaleUI + AbilityIconOffsetX;
+		const float AbilityIconPosY = Canvas->ClipY - ((Offset + AbilityIconTeleport.VL) * ScaleUI + AbilityIconOffsetY * 2);
+
+		float TextScale = 0.57f;
+		float SizeX, SizeY;
+		FString Text = LOCTEXT("Teleport", "Teleport (T)").ToString();
+		Canvas->StrLen(BigFont, Text, SizeX, SizeY);
+
+		TextItem.Text = FText::FromString(Text);
+		TextItem.Scale = FVector2D(TextScale * ScaleUI, TextScale * ScaleUI);
+		TextItem.FontRenderInfo = ShadowedFont;
+		TextItem.SetColor(HUDDark);
+		/*Canvas->DrawItem(TextItem, AbilityIconPosX + Offset * ScaleUI + AbilityIconTeleport.UL * 1.5f * ScaleUI,
+			AbilityIconPosY + (AbilityIconTeleport.VL * ScaleUI - SizeY * TextScale * ScaleUI) / 2);*/
+		Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
+			AbilityIconPosY + (AbilityIconTeleport.VL * ScaleUI + AbilityIconOffsetY / 2));
+
+
+		Canvas->SetDrawColor(255, 255, 255, 192);
+		Canvas->DrawIcon(AbilityIconTeleport, AbilityIconPosX, AbilityIconPosY, ScaleUI);
+	}
 }
 
 void AShooterHUD::DrawCrosshair()
