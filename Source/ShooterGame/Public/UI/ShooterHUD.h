@@ -202,9 +202,9 @@ protected:
 	UPROPERTY()
 	FCanvasIcon AbilityIconTeleport;
 
-	/** Teleport ability icon for cooldown */
+	/** Topping layer for abilities in cooldown */
 	UPROPERTY()
-	FCanvasIcon AbilityIconTeleportCooldown;
+	FCanvasIcon AbilityIconCooldownLayer;
 
 	/** Crosshair icons (left, top, right, bottom and center). */
 	UPROPERTY()

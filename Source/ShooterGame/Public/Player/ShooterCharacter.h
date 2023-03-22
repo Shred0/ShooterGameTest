@@ -263,6 +263,14 @@ class AShooterCharacter : public ACharacter
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 	virtual bool IsFirstPerson() const;
 
+	/** get cooldown state for telepot ability */
+	UFUNCTION(BlueprintCallable, Category = Teleport)
+	bool IsTeleportInCooldown() const;
+
+	/** get cooldown timer for telepot ability */
+	UFUNCTION(BlueprintCallable, Category = Teleport)
+	FTimerHandle GetTeleportTimer() const;
+
 	/** get max health */
 	int32 GetMaxHealth() const;
 
@@ -336,7 +344,7 @@ protected:
 	UPROPERTY(EditdefaultsOnly, Category = Mobility)
 	float TeleportCooldown;
 
-	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = Mobility)
 	uint8 bTeleportInCooldown;
 
 	UPROPERTY(EditdefaultsOnly, Category = Mobility)

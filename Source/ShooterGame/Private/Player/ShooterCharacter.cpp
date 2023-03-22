@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
+#include "..\..\Public\Player\ShooterCharacter.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
 FAutoConsoleVariableRef CVarNetVisualizeRelevancyTestPoints(
@@ -1484,6 +1485,16 @@ bool AShooterCharacter::IsFiring() const
 bool AShooterCharacter::IsFirstPerson() const
 {
 	return IsAlive() && Controller && Controller->IsLocalPlayerController();
+}
+
+bool AShooterCharacter::IsTeleportInCooldown() const
+{
+	return bTeleportInCooldown;
+}
+
+FTimerHandle AShooterCharacter::GetTeleportTimer() const
+{
+	return TeleportCooldownTimer;
 }
 
 int32 AShooterCharacter::GetMaxHealth() const

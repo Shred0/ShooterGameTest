@@ -80,7 +80,7 @@ AShooterHUD::AShooterHUD(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	PlaceIcon = UCanvas::MakeIcon(HUDMainTexture, 250, 468, 21, 28);
 
 	AbilityIconTeleport = UCanvas::MakeIcon(HUDAddedAsset, 901, 285, 90, 95);
-	AbilityIconTeleportCooldown = UCanvas::MakeIcon(HUDAddedAsset, 903, 182, 90, 95);
+	AbilityIconCooldownLayer = UCanvas::MakeIcon(HUDAddedAsset, 792, 287, 90, 95);
 
 	Crosshair[EShooterCrosshairDirection::Left] = UCanvas::MakeIcon(HUDMainTexture, 43, 402, 25, 9); // left
 	Crosshair[EShooterCrosshairDirection::Right] = UCanvas::MakeIcon(HUDMainTexture, 88, 402, 25, 9); // right
@@ -729,22 +729,26 @@ void AShooterHUD::DrawAbilityIconTeleport()
 {
 	AShooterCharacter* MyPawn = CastChecked<AShooterCharacter>(GetOwningPawn());
 	if(MyPawn){
-		FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), BigFont, HUDDark);
-		TextItem.EnableShadow(FLinearColor::Black);
-
+		//drawing teleport ability icon
 		const float AbilityIconOffsetX = 20;
 		const float AbilityIconOffsetY = 7;
-		const float AbilityIconBoxWidth = 65;
 
-		//Teleport icon draw position
 		const float AbilityIconPosX = ((Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2) + HealthBarBg.UL * ScaleUI + AbilityIconOffsetX;
 		const float AbilityIconPosY = Canvas->ClipY - ((Offset + AbilityIconTeleport.VL) * ScaleUI + AbilityIconOffsetY * 2);
 
+		Canvas->SetDrawColor(255, 255, 255, 215);
+		Canvas->DrawIcon(AbilityIconTeleport, AbilityIconPosX, AbilityIconPosY, ScaleUI);
+
+		//setting up text
+		FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), BigFont, HUDDark);
+		TextItem.EnableShadow(FLinearColor::Black);
 		float TextScale = 0.57f;
 		float SizeX, SizeY;
-		FString Text = LOCTEXT("Teleport", "Teleport (T)").ToString();
-		Canvas->StrLen(BigFont, Text, SizeX, SizeY);
+		FString Text;
 
+		//drawing ability name
+		Text = LOCTEXT("AbilityNameTeleport", "Teleport (T)").ToString();
+		Canvas->StrLen(BigFont, Text, SizeX, SizeY);
 		TextItem.Text = FText::FromString(Text);
 		TextItem.Scale = FVector2D(TextScale * ScaleUI, TextScale * ScaleUI);
 		TextItem.FontRenderInfo = ShadowedFont;
@@ -754,9 +758,24 @@ void AShooterHUD::DrawAbilityIconTeleport()
 		Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
 			AbilityIconPosY + (AbilityIconTeleport.VL * ScaleUI + AbilityIconOffsetY / 2));
 
+		//handling ability cooldown
+		if (MyPawn->IsTeleportInCooldown()) {
+			//drowing ability cooldown
+			float TimeRemaining = GetWorld()->GetTimerManager().GetTimerRemaining(MyPawn->GetTeleportTimer());
+			FString StringTimeRemaining = FString::Printf(TEXT("%.2f"), TimeRemaining);
+			FText TextTimeRemaining = FText::FromString(StringTimeRemaining);
+			FText LocTextTimeRemaining = LOCTEXT("AbilityCooldownTeleport", "{0}s");
+			Text = FText::Format(LocTextTimeRemaining, TextTimeRemaining).ToString();
+			Canvas->StrLen(BigFont, Text, SizeX, SizeY);
+			TextItem.Text = FText::FromString(Text);
 
-		Canvas->SetDrawColor(255, 255, 255, 192);
-		Canvas->DrawIcon(AbilityIconTeleport, AbilityIconPosX, AbilityIconPosY, ScaleUI);
+			Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
+				AbilityIconPosY - (SizeY * TextScale * ScaleUI + AbilityIconOffsetY / 2));
+
+			//drowing icon overlay
+			Canvas->SetDrawColor(255, 255, 255, 215);
+			Canvas->DrawIcon(AbilityIconCooldownLayer, AbilityIconPosX, AbilityIconPosY, ScaleUI);
+		}
 	}
 }
 
