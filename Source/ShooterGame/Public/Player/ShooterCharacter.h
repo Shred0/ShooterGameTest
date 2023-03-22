@@ -172,6 +172,7 @@ class AShooterCharacter : public ACharacter
 	/* [server + local] Teleport */
 	void HandleTeleport();
 	void Teleport();
+	void AbilityTeleportReset();
 
 	/** player pressed start fire action */
 	void OnStartFire();
@@ -331,6 +332,15 @@ protected:
 
 	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = Mobility)
 	float TeleportDistance;
+
+	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+	float TeleportCooldown;
+
+	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+	uint8 bTeleportInCooldown;
+
+	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+	FTimerHandle TeleportCooldownTimer;
 
 	/** current firing state */
 	uint8 bWantsToFire : 1;
