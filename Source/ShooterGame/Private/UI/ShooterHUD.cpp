@@ -736,7 +736,7 @@ void AShooterHUD::DrawAbilityIconTeleport()
 		const float AbilityIconPosX = ((Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2) + HealthBarBg.UL * ScaleUI + AbilityIconOffsetX;
 		const float AbilityIconPosY = Canvas->ClipY - ((Offset + AbilityIconTeleport.VL) * ScaleUI + AbilityIconOffsetY * 2);
 
-		Canvas->SetDrawColor(255, 255, 255, 215);
+		Canvas->SetDrawColor(255, 255, 255, 255);
 		Canvas->DrawIcon(AbilityIconTeleport, AbilityIconPosX, AbilityIconPosY, ScaleUI);
 
 		//setting up text

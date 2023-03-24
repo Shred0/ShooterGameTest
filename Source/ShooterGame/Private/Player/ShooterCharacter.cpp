@@ -1492,7 +1492,7 @@ bool AShooterCharacter::IsFirstPerson() const
 	return IsAlive() && Controller && Controller->IsLocalPlayerController();
 }
 
-bool AShooterCharacter::IsTeleportInCooldown() const
+uint8 AShooterCharacter::IsTeleportInCooldown() const
 {
 	return bTeleportInCooldown;
 }

@@ -265,7 +265,7 @@ class AShooterCharacter : public ACharacter
 
 	/** get cooldown state for telepot ability */
 	UFUNCTION(BlueprintCallable, Category = Teleport)
-	bool IsTeleportInCooldown() const;
+	uint8 IsTeleportInCooldown() const;
 
 	/** get cooldown timer for telepot ability */
 	UFUNCTION(BlueprintCallable, Category = Teleport)
