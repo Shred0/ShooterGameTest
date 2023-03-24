@@ -398,6 +398,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)
 	USoundCue* TargetingSound;
 
+	/** sound played when teleported */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+	USoundCue* AbilitySoundTeleport;
+
 	/** used to manipulate with run loop sound */
 	UPROPERTY()
 	UAudioComponent* RunLoopAC;

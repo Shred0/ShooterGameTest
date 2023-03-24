@@ -769,12 +769,17 @@ void AShooterHUD::DrawAbilityIconTeleport()
 			Canvas->StrLen(BigFont, Text, SizeX, SizeY);
 			TextItem.Text = FText::FromString(Text);
 
-			Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
-				AbilityIconPosY - (SizeY * TextScale * ScaleUI + AbilityIconOffsetY / 2));
+			//timer on top
+			/*Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
+				AbilityIconPosY - (SizeY * TextScale * ScaleUI + AbilityIconOffsetY / 2));*/
 
 			//drowing icon overlay
 			Canvas->SetDrawColor(255, 255, 255, 215);
 			Canvas->DrawIcon(AbilityIconCooldownLayer, AbilityIconPosX, AbilityIconPosY, ScaleUI);
+
+			//timer on center
+			Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
+				AbilityIconPosY + (AbilityIconTeleport.VL * ScaleUI) / 2 - (SizeY * TextScale * ScaleUI) / 2);
 		}
 	}
 }

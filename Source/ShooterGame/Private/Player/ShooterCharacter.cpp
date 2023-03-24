@@ -59,6 +59,10 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
+	//custom sounds
+	static ConstructorHelpers::FObjectFinder<USoundCue> AbilitySoundTeleportOb(TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
+	AbilitySoundTeleport = AbilitySoundTeleportOb.Object;
+
 	TargetingSpeedModifier = 0.5f;
 	bIsTargeting = false;
 	RunningSpeedModifier = 1.5f;
@@ -1140,6 +1144,7 @@ void AShooterCharacter::Teleport()
 		//set ability cooldown
 		if (bTeleported) {
 			bTeleportInCooldown = true;
+			UGameplayStatics::SpawnSoundAtLocation(this, AbilitySoundTeleport, BestLocation);
 			GetWorld()->GetTimerManager().SetTimer(TeleportCooldownTimer, this, &AShooterCharacter::AbilityTeleportReset, TeleportCooldown, false);
 		}
 	}
