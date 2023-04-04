@@ -14,4 +14,9 @@ class SHOOTERGAME_API UShooterAbilitySystemComponent : public UAbilitySystemComp
 {
 	GENERATED_BODY()
 	
+public:
+	uint8 AbilitiesGiven = false;
+	uint8 StartupEffectsApplied = false;
+
+
 };

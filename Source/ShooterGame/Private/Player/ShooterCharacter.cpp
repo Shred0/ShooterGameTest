@@ -9,6 +9,9 @@
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
+#include "Player/Abilities/ShooterAbilitySystemComponent.h"
+#include "Player/Abilities/AttributeSets/ShooterAttributeSet.h"
+#include "Player/Abilities/ShooterGameplayAbility.h"
 #include "..\..\Public\Player\ShooterCharacter.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
@@ -72,6 +75,10 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+	
+	//abilities
+	DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
+	EffectRemoveDeadTag = FGameplayTag::RequestGameplayTag(FName("State.RemoveDead"));
 
 	TeleportDistance = 1000.f; //about 10 meters
 	TeleportCooldown = 1.5f; //1.5 seconds cooldown
@@ -376,6 +383,18 @@ void AShooterCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& 
 
 	// remove all weapons
 	DestroyInventory();
+
+	//remove abilities
+	RemoveAbilities();
+
+	//remove ability tags
+	if (AbilitySystemComponent.IsValid()) {
+		AbilitySystemComponent->CancelAbilities();
+
+		FGameplayTagContainer TagsToRemove;
+		TagsToRemove.AddTag(EffectRemoveDeadTag);
+		AbilitySystemComponent->AddLooseGameplayTag(DeadTag);
+	}
 
 	// switch back to 3rd person view
 	UpdatePawnMeshes();
@@ -779,6 +798,13 @@ void AShooterCharacter::SetRunning(bool bNewRunning, bool bToggle)
 	}
 }
 
+void AShooterCharacter::SetTeleportLocation(float TeleportLocation)
+{
+	if (AttributeSet.IsValid()) {
+		AttributeSet->SetTeleportLocation(TeleportLocation);
+	}
+}
+
 bool AShooterCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle)
 {
 	return true;
@@ -957,6 +983,31 @@ void AShooterCharacter::LookUpAtRate(float Val)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Val * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+UAbilitySystemComponent * AShooterCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent.Get();
+}
+
+void AShooterCharacter::RemoveAbilities()
+{
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent.IsValid() || !AbilitySystemComponent->AbilitiesGiven) {
+		return;
+	}
+	
+	TArray<FGameplayAbilitySpecHandle> AbilitiesToRemove;
+	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities()) {
+		if ((Spec.SourceObject == this) && ShooterAbilities.Contains(Spec.Ability->GetClass())) {
+			AbilitiesToRemove.Add(Spec.Handle);
+		}
+	}
+
+	for (int32 i = 0; i < AbilitiesToRemove.Num(); i++) {
+		AbilitySystemComponent->ClearAbility(AbilitiesToRemove[i]);
+	}
+
+	AbilitySystemComponent->AbilitiesGiven = false;
 }
 
 void AShooterCharacter::OnTeleport()
@@ -1492,7 +1543,16 @@ bool AShooterCharacter::IsFirstPerson() const
 	return IsAlive() && Controller && Controller->IsLocalPlayerController();
 }
 
-uint8 AShooterCharacter::IsTeleportInCooldown() const
+float AShooterCharacter::GetTeleportLocation() const
+{
+	if (AttributeSet.IsValid()) {
+		return AttributeSet->GetTeleportLocation();
+	}
+
+	return 0.f;
+}
+
+bool AShooterCharacter::IsTeleportInCooldown() const
 {
 	return bTeleportInCooldown;
 }
@@ -1523,6 +1583,64 @@ void AShooterCharacter::UpdateTeamColorsAllMIDs()
 	{
 		UpdateTeamColors(MeshMIDs[i]);
 	}
+}
+
+void AShooterCharacter::AddShooterAbilities()
+{
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent.IsValid() || AbilitySystemComponent->AbilitiesGiven) {
+		return;
+	}
+
+	for (TSubclassOf<UShooterGameplayAbility>& StartupAbility : ShooterAbilities) {
+		AbilitySystemComponent->GiveAbility(
+			FGameplayAbilitySpec(
+				StartupAbility, //ability reference
+				1, //ability level
+				-1, //static_cast<int32>(StartupAbility.GetDefaultObject()->AbilityInputID), //ability input id
+				this
+			));
+	}
+
+	AbilitySystemComponent->AbilitiesGiven = true;
+}
+
+void AShooterCharacter::InitializeAtributes()
+{
+	if (!AbilitySystemComponent.IsValid()) {
+		return;
+	}
+
+	if (!DefaultAttributes) {
+		UE_LOG(LogTemp, Error, TEXT("%s() Missing DefaultAttributes for %s. Please fill in the character's Blueprint."), *FString(__FUNCTION__), *GetName());
+		return;
+	}
+
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+
+	FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributes, 1, EffectContext);
+	if (NewHandle.IsValid()) {
+		FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent.Get());
+	}
+}
+
+void AShooterCharacter::AddStartupEffects()
+{
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent.IsValid() || AbilitySystemComponent->StartupEffectsApplied) {
+		return;
+	}
+
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+
+	for (TSubclassOf<UGameplayEffect> GameplayEffect : StartupEffects) {
+		FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(GameplayEffect, 1, EffectContext);
+		if (NewHandle.IsValid()) {
+			FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent.Get());
+		}
+	}
+
+	AbilitySystemComponent->StartupEffectsApplied = true;
 }
 
 void AShooterCharacter::BuildPauseReplicationCheckPoints(TArray<FVector>& RelevancyCheckPoints)

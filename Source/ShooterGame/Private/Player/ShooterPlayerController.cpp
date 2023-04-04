@@ -22,6 +22,7 @@
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
 #include "OnlineSubsystemUtils.h"
+#include "AbilitySystemComponent.h"
 
 #define  ACH_FRAG_SOMEONE	TEXT("ACH_FRAG_SOMEONE")
 #define  ACH_SOME_KILLS		TEXT("ACH_SOME_KILLS")
@@ -112,6 +113,16 @@ void AShooterPlayerController::ClearLeaderboardDelegate()
 		{
 			Leaderboards->ClearOnLeaderboardReadCompleteDelegate_Handle(LeaderboardReadCompleteDelegateHandle);
 		}
+	}
+}
+
+void AShooterPlayerController::OnPossess(APawn * InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	AShooterPlayerState* PS = GetPlayerState<AShooterPlayerState>();
+	if (PS) {
+		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, InPawn);
 	}
 }
 

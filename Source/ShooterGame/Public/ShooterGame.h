@@ -15,7 +15,6 @@
 #include "ShooterPlayerController.h"
 #include "ShooterGameClasses.h"
 
-
 class UBehaviorTreeComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogShooter, Log, All);
