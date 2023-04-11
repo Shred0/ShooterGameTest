@@ -12,6 +12,7 @@
 #include "Player/Abilities/ShooterAbilitySystemComponent.h"
 #include "Player/Abilities/AttributeSets/ShooterAttributeSet.h"
 #include "Player/Abilities/ShooterGameplayAbility.h"
+#include <GameplayEffectTypes.h>
 #include "..\..\Public\Player\ShooterCharacter.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
@@ -80,6 +81,8 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
 	EffectRemoveDeadTag = FGameplayTag::RequestGameplayTag(FName("State.RemoveDead"));
 
+	//AIControllerClass = AShooterAIController::StaticClass();
+
 	TeleportDistance = 1000.f; //about 10 meters
 	TeleportCooldown = 1.5f; //1.5 seconds cooldown
 	bTeleportInCooldown = false;
@@ -146,6 +149,22 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 {
 	Super::PossessedBy(InController);
 
+	AShooterPlayerState* PS = GetPlayerState<AShooterPlayerState>();
+	if (PS) {
+		InitializeAbilitySystem(PS);
+
+		AddStartupEffects();
+
+		AddShooterAbilities();
+
+		InitializeAttributes();
+
+		AttributeSet = PS->GetAttributeSet();
+		AbilitySystemComponent->SetTagMapCount(DeadTag, 0);
+
+		SetTeleportLocation(0.f);
+	}
+
 	// [server] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	UpdateTeamColorsAllMIDs();
 }
@@ -153,6 +172,14 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 void AShooterCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
+
+	AShooterPlayerState* PS = GetPlayerState<AShooterPlayerState>();
+	if (PS) {
+		InitializeAbilitySystem(PS);
+		InitializeAttributes();
+
+		BindASCInput();
+	}
 
 	// [client] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	if (GetPlayerState() != NULL)
@@ -388,7 +415,7 @@ void AShooterCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& 
 	RemoveAbilities();
 
 	//remove ability tags
-	if (AbilitySystemComponent.IsValid()) {
+	if (AbilitySystemComponent) {
 		AbilitySystemComponent->CancelAbilities();
 
 		FGameplayTagContainer TagsToRemove;
@@ -800,7 +827,7 @@ void AShooterCharacter::SetRunning(bool bNewRunning, bool bToggle)
 
 void AShooterCharacter::SetTeleportLocation(float TeleportLocation)
 {
-	if (AttributeSet.IsValid()) {
+	if (AttributeSet) {
 		AttributeSet->SetTeleportLocation(TeleportLocation);
 	}
 }
@@ -920,7 +947,21 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
 
+	//Abilities
+	BindASCInput();
+
 	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
+}
+
+void AShooterCharacter::BindASCInput()
+{
+	if (!bASCInputBound && AbilitySystemComponent && IsValid(InputComponent)) {
+		AbilitySystemComponent->BindAbilityActivationToInputComponent(
+			InputComponent,
+			FGameplayAbilityInputBinds(FString("Confirm"), FString("Cancel"), FString("ShooterAbilityID"), static_cast<int32>(ShooterAbilityID::Confirm), static_cast<int32>(ShooterAbilityID::Cancel))
+		);
+		bASCInputBound = true;
+	}
 }
 
 
@@ -987,12 +1028,12 @@ void AShooterCharacter::LookUpAtRate(float Val)
 
 UAbilitySystemComponent * AShooterCharacter::GetAbilitySystemComponent() const
 {
-	return AbilitySystemComponent.Get();
+	return AbilitySystemComponent;// .Get();
 }
 
 void AShooterCharacter::RemoveAbilities()
 {
-	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent.IsValid() || !AbilitySystemComponent->AbilitiesGiven) {
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent || !AbilitySystemComponent->AbilitiesGiven) {
 		return;
 	}
 	
@@ -1545,7 +1586,7 @@ bool AShooterCharacter::IsFirstPerson() const
 
 float AShooterCharacter::GetTeleportLocation() const
 {
-	if (AttributeSet.IsValid()) {
+	if (AttributeSet) {
 		return AttributeSet->GetTeleportLocation();
 	}
 
@@ -1587,7 +1628,7 @@ void AShooterCharacter::UpdateTeamColorsAllMIDs()
 
 void AShooterCharacter::AddShooterAbilities()
 {
-	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent.IsValid() || AbilitySystemComponent->AbilitiesGiven) {
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent || AbilitySystemComponent->AbilitiesGiven) {
 		return;
 	}
 
@@ -1596,51 +1637,59 @@ void AShooterCharacter::AddShooterAbilities()
 			FGameplayAbilitySpec(
 				StartupAbility, //ability reference
 				1, //ability level
-				-1, //static_cast<int32>(StartupAbility.GetDefaultObject()->AbilityInputID), //ability input id
+				static_cast<int32>(StartupAbility.GetDefaultObject()->AbilityInputID), //ability input id
 				this
-			));
+			)
+		);
 	}
 
 	AbilitySystemComponent->AbilitiesGiven = true;
 }
 
-void AShooterCharacter::InitializeAtributes()
+void AShooterCharacter::InitializeAttributes()
 {
-	if (!AbilitySystemComponent.IsValid()) {
+	if (!AbilitySystemComponent) {
 		return;
 	}
 
-	if (!DefaultAttributes) {
-		UE_LOG(LogTemp, Error, TEXT("%s() Missing DefaultAttributes for %s. Please fill in the character's Blueprint."), *FString(__FUNCTION__), *GetName());
+	if (!DefaultAttributeEffect) {
+		UE_LOG(LogTemp, Error, TEXT("%s() Missing DefaultAttributeEffect for %s. Please fill in the character's Blueprint."), *FString(__FUNCTION__), *GetName());
 		return;
 	}
 
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
 
-	FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributes, 1, EffectContext);
-	if (NewHandle.IsValid()) {
-		FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent.Get());
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeEffect, 1, EffectContext);
+	if (SpecHandle.IsValid()) {
+		//FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), AbilitySystemComponent);
+		FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 }
 
 void AShooterCharacter::AddStartupEffects()
 {
-	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent.IsValid() || AbilitySystemComponent->StartupEffectsApplied) {
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent || AbilitySystemComponent->StartupEffectsApplied) {
 		return;
 	}
 
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
 
-	for (TSubclassOf<UGameplayEffect> GameplayEffect : StartupEffects) {
-		FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(GameplayEffect, 1, EffectContext);
+	for (TSubclassOf<UGameplayEffect> GE : StartupEffects) {
+		FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(GE, 1, EffectContext);
 		if (NewHandle.IsValid()) {
-			FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent.Get());
+			FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent);
 		}
 	}
 
 	AbilitySystemComponent->StartupEffectsApplied = true;
+}
+
+void AShooterCharacter::InitializeAbilitySystem(AShooterPlayerState* PS)
+{
+	AbilitySystemComponent = Cast<UShooterAbilitySystemComponent>(PS->GetAbilitySystemComponent());
+	AbilitySystemComponent->InitAbilityActorInfo(PS, this);
 }
 
 void AShooterCharacter::BuildPauseReplicationCheckPoints(TArray<FVector>& RelevancyCheckPoints)

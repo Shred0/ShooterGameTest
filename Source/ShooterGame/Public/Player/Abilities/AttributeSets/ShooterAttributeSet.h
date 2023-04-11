@@ -22,6 +22,10 @@ class SHOOTERGAME_API UShooterAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 	
 public:
+	UPROPERTY(BlueprintReadOnly, Category = "Health", ReplicatedUsing = OnRep_Health)
+	FGameplayAttributeData Health;
+	ATTRIBUTE_ACCESSORS(UShooterAttributeSet, Health)
+
 	UPROPERTY(BlueprintReadOnly, Category = "Teleport", ReplicatedUsing = OnRep_TeleportLocation)
 	FGameplayAttributeData TeleportLocation;
 	ATTRIBUTE_ACCESSORS(UShooterAttributeSet, TeleportLocation)
@@ -29,6 +33,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Jetpack", ReplicatedUsing = OnRep_JetpackFuel)
 	FGameplayAttributeData JetpackFuel;
 	ATTRIBUTE_ACCESSORS(UShooterAttributeSet, JetpackFuel)
+
+	UFUNCTION()
+	virtual void OnRep_Health(const FGameplayAttributeData& OldHealth);
 
 	UFUNCTION()
 	virtual void OnRep_TeleportLocation(const FGameplayAttributeData& OldTeleportLocation);

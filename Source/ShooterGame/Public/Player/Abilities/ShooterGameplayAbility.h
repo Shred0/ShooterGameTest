@@ -13,6 +13,8 @@ UENUM(BlueprintType)
 enum class ShooterAbilityID : uint8
 {
 	None UMETA(DisplayName = "None"),
+	Confirm UMETA(DisplayName = "Confirm"),
+	Cancel UMETA(DisplayName = "Cancel"),
 	Teleport UMETA(DisplayName = "Teleport")
 };
 
@@ -25,10 +27,10 @@ public:
 	UShooterGameplayAbility();
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability")
-		ShooterAbilityID AbilityID = ShooterAbilityID::None;
+	ShooterAbilityID AbilityID = ShooterAbilityID::None;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability")
-		ShooterAbilityID AbilityInputID = ShooterAbilityID::None;
+	ShooterAbilityID AbilityInputID = ShooterAbilityID::None;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability")
 	bool bActivateAbilityOnGranted = false;

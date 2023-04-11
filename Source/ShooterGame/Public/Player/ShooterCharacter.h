@@ -5,6 +5,7 @@
 #include "ShooterTypes.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
+#include <GameplayEffectTypes.h>
 #include "Player/Abilities/ShooterAbilitySystemComponent.h"
 #include "Player/Abilities/AttributeSets/ShooterAttributeSet.h"
 #include "Player/Abilities/ShooterGameplayAbility.h"
@@ -141,6 +142,9 @@ class AShooterCharacter : public ACharacter, public IAbilitySystemInterface
 	/** setup pawn specific input handlers */
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
+	bool bASCInputBound = false;
+	void BindASCInput();
+
 	/**
 	* Handle analog trigger for firing
 	*
@@ -176,7 +180,7 @@ class AShooterCharacter : public ACharacter, public IAbilitySystemInterface
 	void LookUpAtRate(float Val);
 
 	/* Implement abilities */
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void RemoveAbilities();
 
 	/* action binding called to teleport*/
@@ -356,10 +360,15 @@ protected:
 	uint8 bWantsToRunToggled : 1;
 
 	/* Ability System */
-	UPROPERTY(BlueprintReadOnly, Category = "Abilities|SystemComponent")
+	/*UPROPERTY(BlueprintReadOnly, Category = "Abilities|SystemComponent")
 	TWeakObjectPtr<UShooterAbilitySystemComponent> AbilitySystemComponent;
 	UPROPERTY(BlueprintReadOnly, Category = "Abilities|AtributeSet")
-	TWeakObjectPtr<UShooterAttributeSet> AttributeSet;
+	TWeakObjectPtr<UShooterAttributeSet> AttributeSet;*/
+
+	UPROPERTY(BlueprintReadOnly, Category = "Abilities|SystemComponent")
+	class UShooterAbilitySystemComponent* AbilitySystemComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "Abilities|AtributeSet")
+	class UShooterAttributeSet* AttributeSet;
 
 	FGameplayTag DeadTag;
 	FGameplayTag EffectRemoveDeadTag;
@@ -368,14 +377,16 @@ protected:
 	TArray<TSubclassOf<UShooterGameplayAbility>> ShooterAbilities;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities|Attributes")
-	TSubclassOf<UGameplayEffect> DefaultAttributes;
+	TSubclassOf<UGameplayEffect> DefaultAttributeEffect;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities|Effects")
 	TArray<TSubclassOf<UGameplayEffect>> StartupEffects;
 
 	virtual void AddShooterAbilities();
-	virtual void InitializeAtributes();
+	virtual void InitializeAttributes();
 	virtual void AddStartupEffects();
+
+	void InitializeAbilitySystem(AShooterPlayerState* PS);
 
 	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = Mobility)
 	float TeleportDistance;
