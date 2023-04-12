@@ -1143,9 +1143,16 @@ void AShooterCharacter::Teleport()
 
 		//set ability cooldown
 		if (bTeleported) {
-			bTeleportInCooldown = true;
+			UParticleSystem* TeleportFromParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Muzzle/P_Launcher_MF.P_Launcher_MF"));
+			UGameplayStatics::SpawnEmitterAtLocation(this, TeleportFromParticleFX, CLocation, CRotation);
+
 			UGameplayStatics::SpawnSoundAtLocation(this, AbilitySoundTeleport, BestLocation);
+			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
+			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
+			//UParticleSystem* TeleportParticleFX = TeleportParticleFXOb.Object;
+			UGameplayStatics::SpawnEmitterAtLocation(this, TeleportToParticleFX, BestLocation, CRotation);
 			GetWorld()->GetTimerManager().SetTimer(TeleportCooldownTimer, this, &AShooterCharacter::AbilityTeleportReset, TeleportCooldown, false);
+			bTeleportInCooldown = true;
 		}
 	}
 }
