@@ -3,20 +3,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ShooterAbilitySystem.h"
+#include "ShooterTypes.h"
+//#include "ShooterAbilitySystem.h"
 #include "UObject/NoExportTypes.h"
 #include "ShooterAbility.generated.h"
 
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class SHOOTERGAME_API UShooterAbility : public UObject
 {
 	GENERATED_BODY()
 public:
 	UShooterAbility();
-	UShooterAbility(AShooterAbilitySystem* SAS);
+
+	static UShooterAbility* MakeFor(AShooterAbilitySystem* SAS, EShooterAbilityID ID);
 
 	//~UShooterAbility();
 
@@ -28,13 +30,15 @@ public:
 	AShooterAbilitySystem* GetAbilitySystem();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|ID")
-	UShooterAbilityID GetID();
+	EShooterAbilityID GetID();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Name")
 	FString GetName();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	bool GetIsInCooldown();
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	void SetIsInCooldown(bool bInCoolDown);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	float GetCooldown();
@@ -63,9 +67,6 @@ public:
 	void CooldownReset();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
-	virtual int Effect();
-
-	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool PlayEffect();
 
 protected:
@@ -76,7 +77,7 @@ protected:
 	
 	//ability ID
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|ID")
-	UShooterAbilityID AbilityID;
+	EShooterAbilityID AbilityID = EShooterAbilityID::ShooterAbility;
 
 	//ability Name
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Name")
@@ -108,4 +109,11 @@ protected:
 	//owner
 
 	//target
+
+	UWorld* World;
+
+private:
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
+	virtual int Effect();
 };

@@ -1,10 +1,18 @@
-Binaries
+Binaries/*
+Plugins/*/Binaries/*
+Build/*
+*_BuiltData.uasset
 DerivedDataCache
 Intermediate
-Saved
+Saved/*
 .vscode
 .vs
+*.exe
+*.out
+*.app
+*.ipa
 *.VC.db
+*.VC.opendb
 *.opensdf
 *.opendb
 *.sdf
@@ -12,5 +20,3 @@ Saved
 *.suo
 *.xcodeproj
 *.xcworkspace
-Build/*
-Config/DefaultGame.ini

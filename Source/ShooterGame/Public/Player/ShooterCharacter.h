@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ShooterTypes.h"
+#include "Abilities/ShooterAbilitySystem.h"
 #include "ShooterCharacter.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnShooterCharacterEquipWeapon, AShooterCharacter*, AShooterWeapon* /* new */);
@@ -232,6 +233,8 @@ class AShooterCharacter : public ACharacter
 	/** get total number of inventory items */
 	int32 GetInventoryCount() const;
 
+	AShooterAbilitySystem* GetAbilitySystem() const;
+
 	/**
 	* get weapon from inventory at index. Index validity is not checked.
 	*
@@ -349,6 +352,9 @@ protected:
 
 	UPROPERTY(EditdefaultsOnly, Category = Mobility)
 	FTimerHandle TeleportCooldownTimer;
+
+	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = "AbilitySystem")
+	AShooterAbilitySystem* AbilitySystem;
 
 	/** current firing state */
 	uint8 bWantsToFire : 1;

@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
+#include "ShooterAbilitySystem.h"
 #include "..\..\Public\Player\ShooterCharacter.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
@@ -60,8 +61,8 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	//custom sounds
-	static ConstructorHelpers::FObjectFinder<USoundCue> AbilitySoundTeleportOb(TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
-	AbilitySoundTeleport = AbilitySoundTeleportOb.Object;
+	//static ConstructorHelpers::FObjectFinder<USoundCue> AbilitySoundTeleportOb(TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
+	//AbilitySoundTeleport = AbilitySoundTeleportOb.Object;
 
 	TargetingSpeedModifier = 0.5f;
 	bIsTargeting = false;
@@ -139,6 +140,12 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 {
 	Super::PossessedBy(InController);
 
+	//instancing ability system
+	AbilitySystem = AShooterAbilitySystem::MakeFor(this);
+	if (AbilitySystem) {
+		AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
+	}
+
 	// [server] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	UpdateTeamColorsAllMIDs();
 }
@@ -146,6 +153,13 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 void AShooterCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
+
+	//instancing ability system
+	AbilitySystem = AShooterAbilitySystem::MakeFor(this);
+	if (AbilitySystem) {
+		AbilitySystem->SetKeyBindings(InputComponent);
+		AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
+	}
 
 	// [client] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	if (GetPlayerState() != NULL)
@@ -894,7 +908,11 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
 
-	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
+	//PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
+	if (AbilitySystem) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability System valid");
+		AbilitySystem->SetKeyBindings(PlayerInputComponent);
+	}
 }
 
 
@@ -970,10 +988,16 @@ void AShooterCharacter::OnTeleport()
 void AShooterCharacter::HandleTeleport()
 {
 	if (IsLocallyControlled()) {
-		Teleport();
+		//AbilitySystem = AShooterAbilitySystem::MakeFor(this);
+		//Teleport();
+		/*UE_LOG(LogTemp, Warning, TEXT("play?"));
+		if (AbilitySystem) {
+			UE_LOG(LogTemp, Warning, TEXT("play"));
+			AbilitySystem->PlayAbility(EShooterAbilityID::ShooterAbilityTeleport);
+		}*/
 	}
 	if (GetLocalRole() < ROLE_Authority) {
-		ServerTeleport();
+		//ServerTeleport();
 	}
 }
 
@@ -1146,6 +1170,7 @@ void AShooterCharacter::Teleport()
 			UParticleSystem* TeleportFromParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Muzzle/P_Launcher_MF.P_Launcher_MF"));
 			UGameplayStatics::SpawnEmitterAtLocation(this, TeleportFromParticleFX, CLocation, CRotation);
 
+			AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
 			UGameplayStatics::SpawnSoundAtLocation(this, AbilitySoundTeleport, BestLocation);
 			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
@@ -1452,6 +1477,11 @@ AShooterWeapon* AShooterCharacter::GetWeapon() const
 int32 AShooterCharacter::GetInventoryCount() const
 {
 	return Inventory.Num();
+}
+
+AShooterAbilitySystem* AShooterCharacter::GetAbilitySystem() const
+{
+	return AbilitySystem;
 }
 
 AShooterWeapon* AShooterCharacter::GetInventoryWeapon(int32 index) const

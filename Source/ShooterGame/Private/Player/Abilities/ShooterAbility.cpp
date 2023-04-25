@@ -1,14 +1,15 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ShooterGame.h"
-#include "ShooterAbilitySystem.h"
-//#include "ShooterAbility.h"
-#include "Player/Abilities/ShooterAbility.h"
+#include "ShooterTypes.h"
+//#include "ShooterAbilitySystem.h"
+#include "ShooterAbility.h"
+//#include "Player/Abilities/ShooterAbility.h"
 
 UShooterAbility::UShooterAbility()
 {
-	AbilitySystem = nullptr;
-	AbilityID = UShooterAbilityID::None;
+	//AbilitySystem = nullptr;
+	AbilityID = EShooterAbilityID::ShooterAbility;
 	AbilityName = FName(TEXT("None"));
 	IsInCooldown = false;
 	AbilityCooldown = 0.f;
@@ -16,16 +17,21 @@ UShooterAbility::UShooterAbility()
 	AbilityDuration = 0.f;
 	IsActive = false;
 }
-UShooterAbility::UShooterAbility(AShooterAbilitySystem* SAS)
+
+UShooterAbility* UShooterAbility::MakeFor(AShooterAbilitySystem* SAS, EShooterAbilityID ID)
 {
-	AbilitySystem = SAS;
-	AbilityID = UShooterAbilityID::None;
-	AbilityName = FName(TEXT("None"));
-	IsInCooldown = false;
-	AbilityCooldown = 0.f;
-	IsPlaying = false;
-	AbilityDuration = 0.f;
-	IsActive = false;
+	UShooterAbility* abilityReference = nullptr;
+	if (SAS->IsAbilityValid(ID)) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "ID is valid");
+		UClass* abilityClass = *SAS->AbilityClassMap.Find(ID);
+		if (abilityClass) {
+			abilityReference = NewObject<UShooterAbility>(SAS, abilityClass);
+			abilityReference->AbilitySystem = SAS;
+			abilityReference->World = SAS->World;
+		}
+	}
+
+	return abilityReference;
 }
 
 /*UShooterAbility::~UShooterAbility()
@@ -37,7 +43,7 @@ AShooterAbilitySystem* UShooterAbility::GetAbilitySystem()
 	return AbilitySystem;
 }
 
-UShooterAbilityID UShooterAbility::GetID()
+EShooterAbilityID UShooterAbility::GetID()
 {
 	return AbilityID;
 }
@@ -50,6 +56,10 @@ FString UShooterAbility::GetName()
 bool UShooterAbility::GetIsInCooldown()
 {
 	return IsInCooldown;
+}
+void UShooterAbility::SetIsInCooldown(bool bInCoolDown)
+{
+	IsInCooldown = bInCoolDown;
 }
 
 float UShooterAbility::GetCooldown()
@@ -79,17 +89,14 @@ bool UShooterAbility::GetIsActive()
 
 void UShooterAbility::CooldownStart()
 {
-	GetWorld()->GetTimerManager().SetTimer(AbilityCooldownTimer, this, &UShooterAbility::CooldownReset, AbilityCooldown, false);
-	IsInCooldown = true;
+	if (World) {
+		World->GetTimerManager().SetTimer(AbilityCooldownTimer, this, &UShooterAbility::CooldownReset, AbilityCooldown, false);
+		IsInCooldown = true;
+	}
 }
 void UShooterAbility::CooldownReset()
 {
 	IsInCooldown = false;
-}
-
-int UShooterAbility::Effect()
-{
-	return 0;
 }
 
 bool UShooterAbility::PlayEffect()
@@ -108,4 +115,9 @@ bool UShooterAbility::PlayEffect()
 	}
 
 	return successfullyPlayed;
+}
+
+int UShooterAbility::Effect()
+{
+	return 0;
 }

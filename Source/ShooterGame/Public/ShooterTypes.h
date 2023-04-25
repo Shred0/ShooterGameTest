@@ -160,3 +160,22 @@ public:
 	void SetDamageEvent(const FDamageEvent& DamageEvent);
 	void EnsureReplication();
 };
+
+/*UENUM(BlueprintType)
+namespace EShooterAbilityID
+{
+	enum Type
+	{
+		None UMETA(DisplayName = "ShooterAbility"),
+		Teleport UMETA(DisplayName = "ShooterAbilityTeleport")
+	};
+}*/
+UENUM(BlueprintType)
+enum class EShooterAbilityID : uint8
+{
+	Confirm UMETA(DisplayName = "Confirm"),
+	ShooterAbility UMETA(DisplayName = "ShooterAbility"),
+	ShooterAbilityTeleport UMETA(DisplayName = "ShooterAbilityTeleport"),
+	Cancel UMETA(DisplayName = "Cancel")
+};
+//ENUM_RANGE_BY_FIRST_AND_LAST(EShooterAbilityID, EShooterAbilityID::Confirm, EShooterAbilityID::Cancel);
