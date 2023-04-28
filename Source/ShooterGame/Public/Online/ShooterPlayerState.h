@@ -54,6 +54,9 @@ class AShooterPlayerState : public APlayerState
 	/** get number of rockets fired this match */
 	int32 GetNumRocketsFired() const;
 
+	/** get reference to ability system */
+	UShooterAbilitySystem* GetAbilitySystem() const;
+
 	/** get whether the player quit the match */
 	bool IsQuitter() const;
 
@@ -121,4 +124,9 @@ protected:
 
 	/** helper for scoring points */
 	void ScorePoints(int32 Points);
+
+	//ability system
+	UPROPERTY()
+	class UShooterAbilitySystem* AbilitySystem;
+
 };

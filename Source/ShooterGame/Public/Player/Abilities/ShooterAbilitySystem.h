@@ -20,7 +20,7 @@ enum class EShooterAbilityID : uint8
 };*/
 
 UCLASS()
-class SHOOTERGAME_API AShooterAbilitySystem : public AActor
+class SHOOTERGAME_API UShooterAbilitySystem : public UActorComponent//UObject//AActor
 {
 	GENERATED_BODY()
 
@@ -28,17 +28,22 @@ class SHOOTERGAME_API AShooterAbilitySystem : public AActor
 
 public:	
 	// Sets default values for this actor's properties
-	AShooterAbilitySystem();
+	UShooterAbilitySystem();
 
-	static AShooterAbilitySystem* MakeFor(AShooterCharacter* Owner);
+	//static UShooterAbilitySystem* MakeFor(AShooterCharacter* Owner);
+	void SetFor(AActor* PlayerState, AShooterCharacter* Owner);
 
 	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	//virtual void Tick(float DeltaTime) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Owner")
-	AShooterCharacter* GetShooterOwner();
+	AActor* GetActorOwner();
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|Avatar")
+	AShooterCharacter* GetShooterAvatar();
 
 	//method to add abilities
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
@@ -94,9 +99,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities|Manage|List")
 	TMap<EShooterAbilityID, class UShooterAbility*> AbilityMap;
 
-	//shooter character owner
+	//shooter actor owner
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|Owner")
-	AShooterCharacter* ShooterOwner;
+	AActor* ActorOwner;
+
+	//shooter character avatar
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|Avatar")
+	AShooterCharacter* ShooterAvatar;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|Bindings")
 	bool IsBound = false;

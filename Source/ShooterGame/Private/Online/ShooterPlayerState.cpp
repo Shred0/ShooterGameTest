@@ -12,6 +12,9 @@ AShooterPlayerState::AShooterPlayerState(const FObjectInitializer& ObjectInitial
 	NumBulletsFired = 0;
 	NumRocketsFired = 0;
 	bQuitter = false;
+
+	AbilitySystem = CreateDefaultSubobject<UShooterAbilitySystem>(TEXT("AbilitySystem"));
+	AbilitySystem->SetIsReplicated(true);
 }
 
 void AShooterPlayerState::Reset()
@@ -129,6 +132,11 @@ int32 AShooterPlayerState::GetNumBulletsFired() const
 int32 AShooterPlayerState::GetNumRocketsFired() const
 {
 	return NumRocketsFired;
+}
+
+UShooterAbilitySystem * AShooterPlayerState::GetAbilitySystem() const
+{
+	return AbilitySystem;
 }
 
 bool AShooterPlayerState::IsQuitter() const

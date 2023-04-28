@@ -40,6 +40,8 @@ class AShooterCharacter : public ACharacter
 	/** [client] called when replication is paused for this actor */
 	virtual void OnReplicationPausedChanged(bool bIsReplicationPaused) override;
 
+	void InitializeAbilitySystem();
+
 	/**
 	* Add camera pitch to first person mesh.
 	*
@@ -233,7 +235,7 @@ class AShooterCharacter : public ACharacter
 	/** get total number of inventory items */
 	int32 GetInventoryCount() const;
 
-	AShooterAbilitySystem* GetAbilitySystem() const;
+	UShooterAbilitySystem* GetAbilitySystem() const;
 
 	/**
 	* get weapon from inventory at index. Index validity is not checked.
@@ -354,7 +356,7 @@ protected:
 	FTimerHandle TeleportCooldownTimer;
 
 	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = "AbilitySystem")
-	AShooterAbilitySystem* AbilitySystem;
+	UShooterAbilitySystem* AbilitySystem;
 
 	/** current firing state */
 	uint8 bWantsToFire : 1;

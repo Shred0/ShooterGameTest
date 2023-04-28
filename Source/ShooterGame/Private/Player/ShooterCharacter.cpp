@@ -141,10 +141,7 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 	Super::PossessedBy(InController);
 
 	//instancing ability system
-	AbilitySystem = AShooterAbilitySystem::MakeFor(this);
-	if (AbilitySystem) {
-		AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
-	}
+	InitializeAbilitySystem();
 
 	// [server] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	UpdateTeamColorsAllMIDs();
@@ -155,11 +152,7 @@ void AShooterCharacter::OnRep_PlayerState()
 	Super::OnRep_PlayerState();
 
 	//instancing ability system
-	AbilitySystem = AShooterAbilitySystem::MakeFor(this);
-	if (AbilitySystem) {
-		AbilitySystem->SetKeyBindings(InputComponent);
-		AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
-	}
+	InitializeAbilitySystem();
 
 	// [client] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	if (GetPlayerState() != NULL)
@@ -988,7 +981,7 @@ void AShooterCharacter::OnTeleport()
 void AShooterCharacter::HandleTeleport()
 {
 	if (IsLocallyControlled()) {
-		//AbilitySystem = AShooterAbilitySystem::MakeFor(this);
+		//AbilitySystem = UShooterAbilitySystem::MakeFor(this);
 		//Teleport();
 		/*UE_LOG(LogTemp, Warning, TEXT("play?"));
 		if (AbilitySystem) {
@@ -1469,6 +1462,19 @@ void AShooterCharacter::OnReplicationPausedChanged(bool bIsReplicationPaused)
 	GetMesh()->SetHiddenInGame(bIsReplicationPaused, true);
 }
 
+void AShooterCharacter::InitializeAbilitySystem()
+{
+	AShooterPlayerState* PlayerState = GetPlayerState<AShooterPlayerState>();
+	if (PlayerState) {
+		AbilitySystem = PlayerState->GetAbilitySystem();//UShooterAbilitySystem::MakeFor(this);
+		if (AbilitySystem) {
+			AbilitySystem->SetFor(PlayerState, this);
+			AbilitySystem->SetKeyBindings(InputComponent);
+			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
+		}
+	}
+}
+
 AShooterWeapon* AShooterCharacter::GetWeapon() const
 {
 	return CurrentWeapon;
@@ -1479,7 +1485,7 @@ int32 AShooterCharacter::GetInventoryCount() const
 	return Inventory.Num();
 }
 
-AShooterAbilitySystem* AShooterCharacter::GetAbilitySystem() const
+UShooterAbilitySystem* AShooterCharacter::GetAbilitySystem() const
 {
 	return AbilitySystem;
 }

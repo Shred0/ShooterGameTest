@@ -18,7 +18,7 @@ class SHOOTERGAME_API UShooterAbility : public UObject
 public:
 	UShooterAbility();
 
-	static UShooterAbility* MakeFor(AShooterAbilitySystem* SAS, EShooterAbilityID ID);
+	static UShooterAbility* MakeFor(UShooterAbilitySystem* SAS, EShooterAbilityID ID);
 
 	//~UShooterAbility();
 
@@ -27,7 +27,7 @@ public:
 	///
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|AbilitySystem")
-	AShooterAbilitySystem* GetAbilitySystem();
+	UShooterAbilitySystem* GetAbilitySystem();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|ID")
 	EShooterAbilityID GetID();
@@ -73,7 +73,7 @@ protected:
 
 	//ability systenm reference
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|AbilitySystem")
-	AShooterAbilitySystem* AbilitySystem;
+	UShooterAbilitySystem* AbilitySystem;
 	
 	//ability ID
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|ID")

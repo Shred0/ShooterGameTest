@@ -21,7 +21,14 @@ UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
 
 int UShooterAbilityTeleport::Effect()
 {
-	AShooterCharacter* SCOwner = AbilitySystem->GetShooterOwner();
+	if (World->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Teleport Effect in Server");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Teleport Effect in Client");
+	}
+
+	AShooterCharacter* SCOwner = AbilitySystem->GetShooterAvatar();
 
 	if (SCOwner) {
 		FVector CLocation = SCOwner->GetActorLocation();
@@ -167,6 +174,7 @@ int UShooterAbilityTeleport::Effect()
 
 			//effettuo il teletrasporto
 			UE_LOG(LogTemp, Log, TEXT("Best location: X=%f, Y=%f, Z=%f"), BestLocation.X, BestLocation.Y, BestLocation.Z);
+			//SCOwner->SetActorLocation(BestLocation, true, nullptr, ETeleportType::TeleportPhysics);
 			if (SCOwner->TeleportTo(BestLocation, CRotation)) {
 				bTeleported = true;
 			}
@@ -181,7 +189,7 @@ int UShooterAbilityTeleport::Effect()
 			UGameplayStatics::SpawnEmitterAtLocation(SCOwner, TeleportFromParticleFX, CLocation, CRotation);
 
 			AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
-			UGameplayStatics::SpawnSoundAtLocation(SCOwner, AbilitySoundTeleport, BestLocation);
+			UGameplayStatics::PlaySoundAtLocation(SCOwner, AbilitySoundTeleport, BestLocation);
 			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//UParticleSystem* TeleportParticleFX = TeleportParticleFXOb.Object;

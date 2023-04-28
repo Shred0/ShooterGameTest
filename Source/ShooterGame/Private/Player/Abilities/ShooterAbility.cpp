@@ -18,7 +18,7 @@ UShooterAbility::UShooterAbility()
 	IsActive = false;
 }
 
-UShooterAbility* UShooterAbility::MakeFor(AShooterAbilitySystem* SAS, EShooterAbilityID ID)
+UShooterAbility* UShooterAbility::MakeFor(UShooterAbilitySystem* SAS, EShooterAbilityID ID)
 {
 	UShooterAbility* abilityReference = nullptr;
 	if (SAS->IsAbilityValid(ID)) {
@@ -38,7 +38,7 @@ UShooterAbility* UShooterAbility::MakeFor(AShooterAbilitySystem* SAS, EShooterAb
 {
 }*/
 
-AShooterAbilitySystem* UShooterAbility::GetAbilitySystem()
+UShooterAbilitySystem* UShooterAbility::GetAbilitySystem()
 {
 	return AbilitySystem;
 }
@@ -101,6 +101,13 @@ void UShooterAbility::CooldownReset()
 
 bool UShooterAbility::PlayEffect()
 {
+	if (World->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Ability in Server");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Ability in Client");
+	}
+
 	//generic error case
 	int result = -1;
 
