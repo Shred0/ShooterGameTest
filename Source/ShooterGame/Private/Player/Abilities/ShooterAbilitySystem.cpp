@@ -329,7 +329,7 @@ bool UShooterAbilitySystem::ServerInputCancel_Validate()
 	return true;
 }
 
-UTexture2D* UShooterAbilitySystem::GetHUDAsset() const
+UTexture2D* UShooterAbilitySystem::GetHUDAsset()
 {
 	return HUDAsset;
 }
@@ -349,7 +349,7 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 
 	//drowing ability HUD for each equipped ability
 	for (UShooterAbility* ability : abilities) {
-		FCanvasIcon* AbilityIcon = ability->GetAbilityIcon();
+		FCanvasIcon* AbilityIcon = &ability->AbilityIcon;
 
 		//drawing ability icon
 		Canvas->SetDrawColor(255, 255, 255, 255);

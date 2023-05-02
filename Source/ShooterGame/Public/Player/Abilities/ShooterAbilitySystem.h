@@ -99,7 +99,7 @@ public:
 	//abilities HUD
 	///
 
-	UTexture2D* GetHUDAsset() const;
+	UTexture2D* GetHUDAsset();
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|HUD")
 	void DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos, float Scale, float Offset, bool DrawFromBottom, bool DrawFromRight, bool IsVerticalArray);

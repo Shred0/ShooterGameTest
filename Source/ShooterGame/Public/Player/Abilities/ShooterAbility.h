@@ -59,7 +59,8 @@ public:
 	// ability HUD
 	///
 
-	FCanvasIcon GetAbilityIcon();
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|HUD")
+	FCanvasIcon AbilityIcon;
 	
 	///
 	//ability functions
@@ -113,9 +114,6 @@ protected:
 	///
 	// ability HUD
 	///
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|HUD")
-	FCanvasIcon AbilityIcon;
 
 	///
 	//ability functionality

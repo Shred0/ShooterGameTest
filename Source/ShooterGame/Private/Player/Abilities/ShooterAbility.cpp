@@ -87,11 +87,6 @@ bool UShooterAbility::GetIsActive()
 	return IsActive;
 }
 
-FCanvasIcon UShooterAbility::GetAbilityIcon()
-{
-	return AbilityIcon;
-}
-
 void UShooterAbility::CooldownStart()
 {
 	if (World) {
