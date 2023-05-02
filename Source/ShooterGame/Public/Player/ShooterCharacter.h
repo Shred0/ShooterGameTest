@@ -268,6 +268,10 @@ class AShooterCharacter : public ACharacter
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 	virtual bool IsFirstPerson() const;
 
+	/** get cooldown for telepot ability */
+	UFUNCTION(BlueprintCallable, Category = Teleport)
+	float GetTeleportCooldown() const;
+
 	/** get cooldown state for telepot ability */
 	UFUNCTION(BlueprintCallable, Category = Teleport)
 	uint8 IsTeleportInCooldown() const;

@@ -650,7 +650,11 @@ void AShooterHUD::DrawHUD()
 		{
 			DrawHealth();
 			DrawWeaponHUD();
-			DrawAbilityIconTeleport();
+			//DrawAbilityIconTeleport();
+			if (UShooterAbilitySystem* AS = MyPawn->GetAbilitySystem()) {
+				FVector2D startPos = FVector2D((Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2, Canvas->ClipY - (Offset * 2 + HealthBarBg.VL) * ScaleUI);
+				AS->DrawAbilityHUD(Canvas, startPos, ScaleUI, Offset, true, false, false);
+			}
 		}
 		else
 		{
@@ -772,6 +776,21 @@ void AShooterHUD::DrawAbilityIconTeleport()
 			//timer on top
 			/*Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
 				AbilityIconPosY - (SizeY * TextScale * ScaleUI + AbilityIconOffsetY / 2));*/
+
+			float TimeRate = GetWorld()->GetTimerManager().GetTimerRate(MyPawn->GetTeleportTimer());
+			FVector2D Center = FVector2D(AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2,
+				AbilityIconPosY + (AbilityIconTeleport.VL * ScaleUI + AbilityIconOffsetY / 2));
+			FVector2D Radius = FVector2D((AbilityIconTeleport.UL * ScaleUI) / 2, (AbilityIconTeleport.VL * ScaleUI) / 2);
+			float PercRemainingCooldown = (1 / TimeRate * TimeRemaining);
+			UE_LOG(LogTemp, Log, TEXT("cooldown perc: %f"), PercRemainingCooldown);
+			FLinearColor Color = FLinearColor(.5f, .5f, .5f, PercRemainingCooldown);
+			FCanvasTileItem tileItem = FCanvasTileItem(Center - Radius, Radius * 2, Color);
+			tileItem.Rotation = FRotator(0.f, 0.f, 0.f);
+			//tileItem.PivotPoint = Center;
+			//tileItem.SetColor(Color);
+			//Canvas->SetDrawColor(255, 255, 255, (255 / TimeRate * TimeRemaining));
+			tileItem.BlendMode = ESimpleElementBlendMode::SE_BLEND_Translucent;
+			Canvas->DrawItem(tileItem);
 
 			//drowing icon overlay
 			Canvas->SetDrawColor(255, 255, 255, 215);

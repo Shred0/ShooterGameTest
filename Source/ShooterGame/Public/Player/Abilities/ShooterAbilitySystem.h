@@ -54,15 +54,23 @@ public:
 	bool PlayAbility(EShooterAbilityID ID);
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
-	TArray<EShooterAbilityID> GetAllAbilities();
+	TArray<EShooterAbilityID> GetAllAbilityIDs();
+	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
+	TArray<class UClass*> GetAllAbilityClasses();
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
-	TArray<EShooterAbilityID> GetEquippedAbilities();
+	TArray<EShooterAbilityID> GetEquippedAbilityIDs();
+	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
+	TArray<class UShooterAbility*> GetEquippedAbilities();
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	bool IsAbilityEquipped(EShooterAbilityID ID);
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	bool IsAbilityValid(EShooterAbilityID ID);
+
+	///
+	// abilities input
+	///
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Bindings")
 	void SetKeyBindings(UInputComponent* ShooterInputComponent);
@@ -87,6 +95,15 @@ public:
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerInputCancel();
 
+	///
+	//abilities HUD
+	///
+
+	UTexture2D* GetHUDAsset() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|HUD")
+	void DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos, float Scale, float Offset, bool DrawFromBottom, bool DrawFromRight, bool IsVerticalArray);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -109,6 +126,23 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|Bindings")
 	bool IsBound = false;
+
+	///
+	//abilities HUD
+	///
+
+	/** Texture for new HUD elements. */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|HUD")
+	UTexture2D* HUDAsset;
+
+	/** FontRenderInfo enabling casting shadow.s */
+	FFontRenderInfo ShadowedFont;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|HUD")
+	UFont* TextFont;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|HUD")
+	FColor TextColor;
 
 	UWorld* World;
 

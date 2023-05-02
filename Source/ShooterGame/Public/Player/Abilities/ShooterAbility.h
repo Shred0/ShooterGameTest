@@ -54,6 +54,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool GetIsActive();
+
+	///
+	// ability HUD
+	///
+
+	FCanvasIcon GetAbilityIcon();
 	
 	///
 	//ability functions
@@ -104,12 +110,30 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect")
 	bool IsActive;
 
-	//energy pool
+	///
+	// ability HUD
+	///
 
-	//owner
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|HUD")
+	FCanvasIcon AbilityIcon;
 
-	//target
+	///
+	//ability functionality
+	///
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
+	bool UsesEnergy;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
+	float MaxEnergy;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
+	float Energy;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
+	bool AutoRefills;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
+	float RefillRateinTime;
+
+	//world
 	UWorld* World;
 
 private:

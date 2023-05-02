@@ -15,6 +15,9 @@ UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
 	AbilityDuration = 0.f;
 	IsActive = false;
 
+	//HUD
+	AbilityIcon = UCanvas::MakeIcon(GetAbilitySystem()->GetHUDAsset(), 901, 285, 90, 95);
+
 	//custom
 	TeleportDistance = 1000.f; //about 10 meters
 }

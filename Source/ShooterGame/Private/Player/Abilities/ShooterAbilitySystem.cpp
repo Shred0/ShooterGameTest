@@ -5,6 +5,7 @@
 //#include "AssetRegistryModule.h"
 #include "ShooterAbility.h"
 //#include "Player/Abilities/ShooterAbility.h"
+#include "Algo/Reverse.h"
 #include "Player/Abilities/ShooterAbilitySystem.h"
 
 // Sets default values
@@ -14,7 +15,48 @@ UShooterAbilitySystem::UShooterAbilitySystem()
 	//PrimaryActorTick.bCanEverTick = false;
 	PrimaryComponentTick.bCanEverTick = false;
 	//bReplicates = true;
+
+	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
+	HUDAsset = HUDAssetOb.Object;
+
+	ShadowedFont.bEnableShadow = true;
+
+	static ConstructorHelpers::FObjectFinder<UFont> FontOb(TEXT("/Game/UI/HUD/Roboto18"));
+	TextFont = FontOb.Object;
+
+	TextColor = FColor(110, 124, 131, 255);
 }
+
+// Called when the game starts or when spawned
+void UShooterAbilitySystem::BeginPlay()
+{
+	Super::BeginPlay();
+
+	/*FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	TArray<FAssetData> AssetData;
+	const UClass* Class = UShooterAbility::StaticClass();
+	AssetRegistryModule.Get().GetAssetsByClass(Class->GetFName(), AssetData);*/
+}
+
+// Called every frame
+/*void UShooterAbilitySystem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}*/
+void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+}
+
+void UShooterAbilitySystem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	//DOREPLIFETIME(UShooterAbilitySystem, AbilityMap);
+}
+
 //UShooterAbilitySystem* UShooterAbilitySystem::MakeFor(AShooterCharacter* Owner)
 void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avatar)
 {
@@ -61,25 +103,6 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 			}
 		}
 	}
-}
-
-// Called every frame
-/*void UShooterAbilitySystem::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}*/
-void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-}
-
-void UShooterAbilitySystem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	//DOREPLIFETIME(UShooterAbilitySystem, AbilityMap);
 }
 
 AActor * UShooterAbilitySystem::GetActorOwner()
@@ -148,7 +171,7 @@ bool UShooterAbilitySystem::PlayAbility(EShooterAbilityID ID)
 	return successfullyPlayed;
 }
 
-TArray<EShooterAbilityID> UShooterAbilitySystem::GetAllAbilities()
+TArray<EShooterAbilityID> UShooterAbilitySystem::GetAllAbilityIDs()
 {
 	TArray<EShooterAbilityID> abilityList;
 	UEnum* ids = StaticEnum<EShooterAbilityID>();
@@ -161,10 +184,26 @@ TArray<EShooterAbilityID> UShooterAbilitySystem::GetAllAbilities()
 	return abilityList;
 }
 
-TArray<EShooterAbilityID> UShooterAbilitySystem::GetEquippedAbilities()
+TArray<class UClass*> UShooterAbilitySystem::GetAllAbilityClasses()
+{
+	TArray<class UClass*> abilityList;
+	AbilityClassMap.GenerateValueArray(abilityList);
+
+	return abilityList;
+}
+
+TArray<EShooterAbilityID> UShooterAbilitySystem::GetEquippedAbilityIDs()
 {
 	TArray<EShooterAbilityID> abilityList;
 	AbilityMap.GenerateKeyArray(abilityList);
+
+	return abilityList;
+}
+
+TArray<class UShooterAbility*> UShooterAbilitySystem::GetEquippedAbilities()
+{
+	TArray<class UShooterAbility*> abilityList;
+	AbilityMap.GenerateValueArray(abilityList);
 
 	return abilityList;
 }
@@ -290,14 +329,88 @@ bool UShooterAbilitySystem::ServerInputCancel_Validate()
 	return true;
 }
 
-// Called when the game starts or when spawned
-void UShooterAbilitySystem::BeginPlay()
+UTexture2D* UShooterAbilitySystem::GetHUDAsset() const
 {
-	Super::BeginPlay();
-	
-	/*FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	TArray<FAssetData> AssetData;
-	const UClass* Class = UShooterAbility::StaticClass();
-	AssetRegistryModule.Get().GetAssetsByClass(Class->GetFName(), AssetData);*/
+	return HUDAsset;
+}
+
+void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos, float Scale = 1.f, float Offset = 0.f, bool DrawFromBottom = false, bool DrawFromRight = false, bool IsVerticalArray = false)
+{
+	if (!ShooterAvatar) return;
+
+	float IconPosX = StartPos.X;
+	float IconPosY = StartPos.Y;
+
+	TArray<UShooterAbility*> abilities = GetEquippedAbilities();
+		
+	if ((!IsVerticalArray && DrawFromRight) || (IsVerticalArray && DrawFromBottom)) {
+		Algo::Reverse(abilities);
+	}
+
+	//drowing ability HUD for each equipped ability
+	for (UShooterAbility* ability : abilities) {
+		FCanvasIcon* AbilityIcon = ability->GetAbilityIcon();
+
+		//drawing ability icon
+		Canvas->SetDrawColor(255, 255, 255, 255);
+		Canvas->DrawIcon(*AbilityIcon, IconPosX, IconPosY, Scale);
+
+		//setting up text
+		FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), TextFont, TextColor);
+		TextItem.EnableShadow(FLinearColor::Black);
+		float TextScale = 0.57f;
+		float SizeX, SizeY;
+		FString Text;
+
+		//drawing ability name
+		Text = ability->GetFName().ToString();
+		Canvas->StrLen(TextFont, Text, SizeX, SizeY);
+		TextItem.Text = FText::FromString(Text);
+		TextItem.Scale = FVector2D(TextScale * Scale, TextScale * Scale);
+		TextItem.FontRenderInfo = ShadowedFont;
+		TextItem.SetColor(TextColor);
+		Canvas->DrawItem(TextItem, (IconPosX + (AbilityIcon->UL * Scale) / 2) - ((SizeX * TextScale * Scale) / 2),
+			IconPosY + (AbilityIcon->VL * Scale + Offset / 2));
+
+		//handling ability cooldown
+		if (ability->GetIsInCooldown()) {
+			//drowing ability cooldown
+			float TimeRemaining = GetWorld()->GetTimerManager().GetTimerRemaining(ability->GetCooldownTimer());
+			/*FString StringTimeRemaining = FString::Printf(TEXT("%.2f"), TimeRemaining);
+			FText TextTimeRemaining = FText::FromString(StringTimeRemaining);
+			FText LocTextTimeRemaining = LOCTEXT("AbilityCooldownTeleport", "{0}s");
+			Text = FText::Format(LocTextTimeRemaining, TextTimeRemaining).ToString();*/
+			Text = FString::Printf(TEXT("%.2f"), TimeRemaining);
+			Canvas->StrLen(TextFont, Text, SizeX, SizeY);
+			TextItem.Text = FText::FromString(Text);
+
+			//timer on top
+			/*Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
+				AbilityIconPosY - (SizeY * TextScale * ScaleUI + AbilityIconOffsetY / 2));*/
+
+			float TimeRate = GetWorld()->GetTimerManager().GetTimerRate(ability->GetCooldownTimer());
+			FVector2D Center = FVector2D(IconPosX + (AbilityIcon->UL * Scale) / 2,
+				IconPosY + (AbilityIcon->VL * Scale + Offset / 2));
+			FVector2D Radius = FVector2D((AbilityIcon->UL * Scale) / 2, (AbilityIcon->VL * Scale) / 2);
+			float PercRemainingCooldown = (1 / TimeRate * TimeRemaining);
+			UE_LOG(LogTemp, Log, TEXT("cooldown perc: %f"), PercRemainingCooldown);
+			FLinearColor Color = FLinearColor(.5f, .5f, .5f, PercRemainingCooldown);
+			FCanvasTileItem tileItem = FCanvasTileItem(Center - Radius, Radius * 2, Color);
+			tileItem.Rotation = FRotator(0.f, 0.f, 0.f);
+			//tileItem.PivotPoint = Center;
+			//tileItem.SetColor(Color);
+			//Canvas->SetDrawColor(255, 255, 255, (255 / TimeRate * TimeRemaining));
+			tileItem.BlendMode = ESimpleElementBlendMode::SE_BLEND_Translucent;
+			Canvas->DrawItem(tileItem);
+
+			//drowing icon overlay
+			//Canvas->SetDrawColor(255, 255, 255, 215);
+			//Canvas->DrawIcon(AbilityIconCooldownLayer, IconPosX, IconPosY, Scale);
+
+			//timer on center
+			Canvas->DrawItem(TextItem, (IconPosX + (AbilityIcon->UL * Scale) / 2) - ((SizeX * TextScale * Scale) / 2),
+				IconPosY + (AbilityIcon->VL * Scale) / 2 - (SizeY * TextScale * Scale) / 2);
+		}
+	}
 }
 

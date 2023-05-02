@@ -901,7 +901,7 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
 
-	//PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
+	//PlayerInputComponent->BindAction("ShooterAbilityTeleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
 	if (AbilitySystem) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability System valid");
 		AbilitySystem->SetKeyBindings(PlayerInputComponent);
@@ -982,7 +982,7 @@ void AShooterCharacter::HandleTeleport()
 {
 	if (IsLocallyControlled()) {
 		//AbilitySystem = UShooterAbilitySystem::MakeFor(this);
-		//Teleport();
+		Teleport();
 		/*UE_LOG(LogTemp, Warning, TEXT("play?"));
 		if (AbilitySystem) {
 			UE_LOG(LogTemp, Warning, TEXT("play"));
@@ -990,7 +990,7 @@ void AShooterCharacter::HandleTeleport()
 		}*/
 	}
 	if (GetLocalRole() < ROLE_Authority) {
-		//ServerTeleport();
+		ServerTeleport();
 	}
 }
 
@@ -1533,6 +1533,11 @@ bool AShooterCharacter::IsFiring() const
 bool AShooterCharacter::IsFirstPerson() const
 {
 	return IsAlive() && Controller && Controller->IsLocalPlayerController();
+}
+
+float AShooterCharacter::GetTeleportCooldown() const
+{
+	return TeleportCooldown;
 }
 
 uint8 AShooterCharacter::IsTeleportInCooldown() const
