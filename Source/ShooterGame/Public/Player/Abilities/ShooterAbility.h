@@ -70,6 +70,35 @@ public:
 	//ability functions
 	///
 
+	///
+	//ability functionality
+	///
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	bool UsesEnergy();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	float GetMaxEnergy();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	float GetEnergy();
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	void SetEnergy(float Energy);
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	void AddEnergy(float Energy);
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	void UseEnergy(float Energy);
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	bool AutoRefills();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	float GetRefillRateInTime();
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	float GetDrainRateInTime();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
+	virtual bool AutoRefillCondition();
+
 	//called when effect is successfully played
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	void CooldownStart();
@@ -79,6 +108,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool PlayEffect();
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
+	void StopEffect();
 
 protected:
 
@@ -92,28 +123,28 @@ protected:
 
 	//ability Name
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Name")
-	FName AbilityName;
+	FName AbilityName = FName(TEXT("None"));
 
 	//ability cooldown
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
-	bool IsInCooldown;
+	bool IsInCooldown = false;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
-	float AbilityCooldown;
+	float AbilityCooldown = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown|Timer")
 	FTimerHandle AbilityCooldownTimer;
 
 	//ability duration
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Duration")
-	bool IsPlaying;
+	bool IsPlaying = false;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Duration")
-	float AbilityDuration;
+	float AbilityDuration = 0.f;
 
 	//ability effect
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect")
-	bool IsActive;
+	bool IsActive = false;
 
 	///
 	// ability HUD
@@ -124,16 +155,19 @@ protected:
 	///
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
-	bool UsesEnergy;
+	bool bUsesEnergy = false;
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
-	float MaxEnergy;
+	float MaxEnergy = 100.f;
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
-	float Energy;
+	float Energy = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
-	bool AutoRefills;
+	bool bAutoRefills = true;
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
-	float RefillRateinTime;
+	float RefillRateinTime = 25.f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
+	float DrainRateinTime = 15.f;
 
 	//world
 	UWorld* World;
@@ -142,4 +176,7 @@ private:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual int Effect();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
+	virtual void AfterEffect();
 };

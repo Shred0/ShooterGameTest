@@ -87,6 +87,56 @@ bool UShooterAbility::GetIsActive()
 	return IsActive;
 }
 
+bool UShooterAbility::UsesEnergy()
+{
+	return bUsesEnergy;
+}
+
+float UShooterAbility::GetMaxEnergy()
+{
+	return MaxEnergy;
+}
+
+float UShooterAbility::GetEnergy()
+{
+	return Energy;
+}
+
+void UShooterAbility::SetEnergy(float Energy)
+{
+	this->Energy = FMath::Clamp(Energy, 0.f, MaxEnergy);
+}
+
+void UShooterAbility::AddEnergy(float Energy)
+{
+	this->Energy += FMath::Clamp(Energy, 0.f, MaxEnergy - this->Energy);
+}
+
+void UShooterAbility::UseEnergy(float Energy)
+{
+	this->Energy -= FMath::Clamp(Energy, 0.f, this->Energy);
+}
+
+bool UShooterAbility::AutoRefills()
+{
+	return bAutoRefills;
+}
+
+float UShooterAbility::GetRefillRateInTime()
+{
+	return RefillRateinTime;
+}
+
+float UShooterAbility::GetDrainRateInTime()
+{
+	return DrainRateinTime;
+}
+
+bool UShooterAbility::AutoRefillCondition()
+{
+	return true;
+}
+
 void UShooterAbility::CooldownStart()
 {
 	if (World) {
@@ -111,7 +161,10 @@ bool UShooterAbility::PlayEffect()
 	//generic error case
 	int result = -1;
 
-	if (!IsInCooldown) {
+	if (!IsInCooldown || (UsesEnergy() && DrainRateinTime >= Energy)) {
+		if (UsesEnergy()) {
+			IsPlaying = true;
+		}
 		result = Effect();
 	}
 
@@ -124,7 +177,25 @@ bool UShooterAbility::PlayEffect()
 	return successfullyPlayed;
 }
 
+void UShooterAbility::StopEffect()
+{
+	if (World->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Server");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Client");
+	}
+
+	AfterEffect();
+
+	IsPlaying = false;
+}
+
 int UShooterAbility::Effect()
 {
 	return 0;
+}
+
+void UShooterAbility::AfterEffect()
+{
 }

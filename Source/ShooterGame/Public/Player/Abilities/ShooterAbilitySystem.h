@@ -53,6 +53,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
 	bool PlayAbility(EShooterAbilityID ID);
 
+	//method to play abilities
+	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
+	void StopAbility(EShooterAbilityID ID);
+
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	TArray<EShooterAbilityID> GetAllAbilityIDs();
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")

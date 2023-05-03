@@ -13,13 +13,14 @@ UShooterAbilitySystem::UShooterAbilitySystem()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	//PrimaryActorTick.bCanEverTick = false;
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 	//bReplicates = true;
 
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	HUDAsset = HUDAssetOb.Object;
 
-	static ConstructorHelpers::FObjectFinder<UFont> FontOb(TEXT("/Game/UI/HUD/Roboto18"));
+	//static ConstructorHelpers::FObjectFinder<UFont> FontOb(TEXT("/Game/UI/HUD/Roboto18")); //too small
+	static ConstructorHelpers::FObjectFinder<UFont> FontOb(TEXT("/Game/UI/HUD/Roboto51"));
 	TextFont = FontOb.Object;
 
 	ShadowedFont.bEnableShadow = true;
@@ -48,6 +49,35 @@ void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	//time between frames
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Delta Time: "+ FString::Printf(TEXT("%.4f"), DeltaTime));
+
+	//refilling abilities that use energy
+	TArray<UShooterAbility*> abilities = GetEquippedAbilities();
+
+	//managing energy for each equipped ability
+	for (UShooterAbility* ability : abilities) {
+		if (ability->UsesEnergy()) {
+			//drain abilities
+			if (ability->GetIsPlaying()) {
+				//using energy from ability's pool based on elapsed time
+				float energy = (ability->GetDrainRateInTime() / 1) * DeltaTime; //refill rate is in seconds, like delta time
+				ability->UseEnergy(energy);
+				if (ability->GetEnergy() == 0) {
+					ability->StopEffect();
+				}
+			}
+
+			//refill abilities
+			if (!ability->GetIsPlaying() && ability->AutoRefills() && ability->AutoRefillCondition()) {
+				if (ability->GetEnergy() < ability->GetMaxEnergy()) {
+					//adding energy on ability's pool based on elapsed time
+					float energy = (ability->GetRefillRateInTime() / 1) * DeltaTime; //refill rate is in seconds, like delta time
+					ability->AddEnergy(energy);
+				}
+			}
+		}
+	}
 }
 
 void UShooterAbilitySystem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -171,6 +201,17 @@ bool UShooterAbilitySystem::PlayAbility(EShooterAbilityID ID)
 	return successfullyPlayed;
 }
 
+void UShooterAbilitySystem::StopAbility(EShooterAbilityID ID)
+{
+	if (IsAbilityEquipped(ID)) {
+		UShooterAbility* ability = *AbilityMap.Find(ID);
+
+		if (ability && ability->GetIsPlaying()) {
+			ability->StopEffect();
+		}
+	}
+}
+
 TArray<EShooterAbilityID> UShooterAbilitySystem::GetAllAbilityIDs()
 {
 	TArray<EShooterAbilityID> abilityList;
@@ -264,7 +305,6 @@ void UShooterAbilitySystem::SetKeyBindings(UInputComponent* ShooterInputComponen
 
 void UShooterAbilitySystem::AbilityLocalInputPressed(int32 InputID)
 {
-	UE_LOG(LogTemp, Warning, TEXT("muchas gracias aficion"));
 	EShooterAbilityID ID = static_cast<EShooterAbilityID>(InputID);
 
 	if (ID == EShooterAbilityID::Confirm || ID == EShooterAbilityID::Cancel) {
@@ -296,9 +336,29 @@ bool UShooterAbilitySystem::AbilityServerInputPressed_Validate(EShooterAbilityID
 
 void UShooterAbilitySystem::AbilityLocalInputReleased(int32 InputID)
 {
+	EShooterAbilityID ID = static_cast<EShooterAbilityID>(InputID);
+
+	if (ID == EShooterAbilityID::Confirm || ID == EShooterAbilityID::Cancel) {
+		return;
+	}
+
+	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Trying server Ability Input release");
+		AbilityServerInputReleased(ID);
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Local Ability Input release");
+	StopAbility(ID);
 }
 void UShooterAbilitySystem::AbilityServerInputReleased_Implementation(EShooterAbilityID ID)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Server Ability Input release");
+
+	if (ID == EShooterAbilityID::Confirm || ID == EShooterAbilityID::Cancel) {
+		return;
+	}
+
+	StopAbility(ID);
 }
 bool UShooterAbilitySystem::AbilityServerInputReleased_Validate(EShooterAbilityID ID)
 {
@@ -351,52 +411,81 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 	for (UShooterAbility* ability : abilities) {
 		FCanvasIcon* AbilityIcon = &ability->AbilityIcon;
 
-		//drawing ability icon
-		Canvas->SetDrawColor(255, 255, 255, 255);
-		Canvas->DrawIcon(*AbilityIcon, IconPosX, IconPosY, Scale);
-
 		//setting up text
 		FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), TextFont, TextColor);
 		TextItem.EnableShadow(FLinearColor::Black);
-		float TextScale = 0.57f;
+		float TextScale = 0.4f;
 		float SizeX, SizeY;
-		FString Text;
-
-		//drawing ability name
-		Text = ability->GetFName().ToString();
+		FString Text = ability->GetName();
 		Canvas->StrLen(TextFont, Text, SizeX, SizeY);
 		TextItem.Text = FText::FromString(Text);
 		TextItem.Scale = FVector2D(TextScale * Scale, TextScale * Scale);
 		TextItem.FontRenderInfo = ShadowedFont;
 		TextItem.SetColor(TextColor);
+
+		//adjusting position
+		if (DrawFromBottom) {
+			IconPosY -= (AbilityIcon->VL * Scale) + (SizeY * TextItem.Scale.Y);
+		}
+
+		if (DrawFromRight) {
+			IconPosX -= (AbilityIcon->UL * Scale);
+		}
+
+		//drawing ability icon
+		Canvas->SetDrawColor(255, 255, 255, 255);
+		Canvas->DrawIcon(*AbilityIcon, IconPosX, IconPosY, Scale);
+
+		//drawing ability name
 		Canvas->DrawItem(TextItem, (IconPosX + (AbilityIcon->UL * Scale) / 2) - ((SizeX * TextScale * Scale) / 2),
-			IconPosY + (AbilityIcon->VL * Scale + Offset / 2));
+			IconPosY + (AbilityIcon->VL * Scale + (Offset * Scale) / 2));
+
+		//handling ability energy
+		if (ability->UsesEnergy() && ability->GetEnergy() < ability->GetMaxEnergy()) {
+			//drawing energy percentage
+			float EnergyPerc = (ability->GetMaxEnergy() / 100) * ability->GetEnergy();
+			Text = FString::Printf(TEXT("%.2f"), EnergyPerc) + "%";
+			Canvas->StrLen(TextFont, Text, SizeX, SizeY);
+			TextItem.Text = FText::FromString(Text);
+
+			//reloading bar effect on cooldown
+			FLinearColor Color = FLinearColor(.5f, .5f, .5f, .5f);
+			FCanvasTileItem tileItem = FCanvasTileItem(
+				FVector2D(IconPosX, IconPosY),
+				FVector2D((AbilityIcon->UL * Scale), (AbilityIcon->VL * Scale) * ((100 - EnergyPerc) / 100)),
+				Color);
+			tileItem.BlendMode = ESimpleElementBlendMode::SE_BLEND_Translucent;
+			Canvas->DrawItem(tileItem);
+
+			//energy percentage on center
+			Canvas->DrawItem(TextItem, (IconPosX + (AbilityIcon->UL * Scale) / 2) - ((SizeX * TextScale * Scale) / 2),
+				IconPosY + (AbilityIcon->VL * Scale) / 2 - (SizeY * TextScale * Scale) / 2);
+		}
 
 		//handling ability cooldown
 		if (ability->GetIsInCooldown()) {
-			//drowing ability cooldown
+			//drawing ability cooldown
 			float TimeRemaining = GetWorld()->GetTimerManager().GetTimerRemaining(ability->GetCooldownTimer());
 			/*FString StringTimeRemaining = FString::Printf(TEXT("%.2f"), TimeRemaining);
 			FText TextTimeRemaining = FText::FromString(StringTimeRemaining);
 			FText LocTextTimeRemaining = LOCTEXT("AbilityCooldownTeleport", "{0}s");
 			Text = FText::Format(LocTextTimeRemaining, TextTimeRemaining).ToString();*/
-			Text = FString::Printf(TEXT("%.2f"), TimeRemaining);
+			Text = FString::Printf(TEXT("%.2f"), TimeRemaining) + "s";
 			Canvas->StrLen(TextFont, Text, SizeX, SizeY);
 			TextItem.Text = FText::FromString(Text);
 
-			//timer on top
+			//icon disabled effect on cooldown
 			/*Canvas->DrawItem(TextItem, (AbilityIconPosX + (AbilityIconTeleport.UL * ScaleUI) / 2) - ((SizeX * TextScale * ScaleUI) / 2),
 				AbilityIconPosY - (SizeY * TextScale * ScaleUI + AbilityIconOffsetY / 2));*/
 
 			float TimeRate = GetWorld()->GetTimerManager().GetTimerRate(ability->GetCooldownTimer());
-			FVector2D Center = FVector2D(IconPosX + (AbilityIcon->UL * Scale) / 2,
-				IconPosY + (AbilityIcon->VL * Scale + Offset / 2));
-			FVector2D Radius = FVector2D((AbilityIcon->UL * Scale) / 2, (AbilityIcon->VL * Scale) / 2);
 			float PercRemainingCooldown = (1 / TimeRate * TimeRemaining);
-			UE_LOG(LogTemp, Log, TEXT("cooldown perc: %f"), PercRemainingCooldown);
 			FLinearColor Color = FLinearColor(.5f, .5f, .5f, PercRemainingCooldown);
-			FCanvasTileItem tileItem = FCanvasTileItem(Center - Radius, Radius * 2, Color);
-			tileItem.Rotation = FRotator(0.f, 0.f, 0.f);
+			FCanvasTileItem tileItem = FCanvasTileItem(
+				FVector2D(IconPosX, IconPosY),
+				FVector2D((AbilityIcon->UL * Scale), (AbilityIcon->VL * Scale)),
+				Color);
+			//tileItem.Rotation = FRotator(0.f, 0.f, 0.f);
 			//tileItem.PivotPoint = Center;
 			//tileItem.SetColor(Color);
 			//Canvas->SetDrawColor(255, 255, 255, (255 / TimeRate * TimeRemaining));
@@ -410,6 +499,29 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 			//timer on center
 			Canvas->DrawItem(TextItem, (IconPosX + (AbilityIcon->UL * Scale) / 2) - ((SizeX * TextScale * Scale) / 2),
 				IconPosY + (AbilityIcon->VL * Scale) / 2 - (SizeY * TextScale * Scale) / 2);
+		}
+
+		//setting starting position for next icon
+		if (IsVerticalArray) {
+			if (DrawFromRight) {
+				IconPosX += (AbilityIcon->UL * Scale);
+			}
+
+			if (DrawFromBottom) {
+				IconPosY -= (Offset * Scale);
+			} else {
+				IconPosY += (AbilityIcon->VL * Scale) + (Offset * Scale);
+			}
+		}else{
+			if (DrawFromRight) {
+				IconPosX -= (Offset * Scale);
+			} else {
+				IconPosX += (AbilityIcon->UL * Scale) + (Offset * Scale);
+			}
+
+			if (DrawFromBottom) {
+				IconPosY += (AbilityIcon->VL * Scale);
+			}
 		}
 	}
 }
