@@ -59,6 +59,10 @@ public:
 	// ability HUD
 	///
 
+	/** Texture for new HUD elements. */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|HUD")
+	UTexture2D* HUDAsset;
+
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|HUD")
 	FCanvasIcon AbilityIcon;
 	

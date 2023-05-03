@@ -16,8 +16,9 @@ UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
 	IsActive = false;
 
 	//HUD
-	UTexture2D* Asset = GetAbilitySystem()->GetHUDAsset();
-	AbilityIcon = UCanvas::MakeIcon(Asset, 901, 285, 90, 95);
+	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
+	HUDAsset = HUDAssetOb.Object;
+	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 901, 285, 90, 95);
 
 	//custom
 	TeleportDistance = 1000.f; //about 10 meters

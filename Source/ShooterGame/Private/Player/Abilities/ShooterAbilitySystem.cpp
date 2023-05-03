@@ -19,10 +19,10 @@ UShooterAbilitySystem::UShooterAbilitySystem()
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	HUDAsset = HUDAssetOb.Object;
 
-	ShadowedFont.bEnableShadow = true;
-
 	static ConstructorHelpers::FObjectFinder<UFont> FontOb(TEXT("/Game/UI/HUD/Roboto18"));
 	TextFont = FontOb.Object;
+
+	ShadowedFont.bEnableShadow = true;
 
 	TextColor = FColor(110, 124, 131, 255);
 }
