@@ -33,6 +33,8 @@ int UShooterAbilityTeleport::Effect()
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Teleport Effect in Client");
 	}
 
+	bool bTeleported = false;
+
 	AShooterCharacter* SCOwner = AbilitySystem->GetShooterAvatar();
 
 	if (SCOwner) {
@@ -58,15 +60,40 @@ int UShooterAbilityTeleport::Effect()
 		FVector BestLocation = TargetLocation;
 		float BestDistance = TeleportDistance;
 
-		bool bTeleported = false;
-
 		//if my target position is available i can teleport there
 		UE_LOG(LogTemp, Log, TEXT("Target location: X=%f, Y=%f, Z=%f"), TargetLocation.X, TargetLocation.Y, TargetLocation.Z);
 
-		//FHitResult res;
-		//bool yes = SCOwner->GetMovementComponent()->SafeMoveUpdatedComponent(TargetLocation, CRotation, false, HitResult, ETeleportType::TeleportPhysics);
+		{
+			// Apply the pivot offset to the desired location
+			FVector Offset = SCOwner->GetRootComponent()->Bounds.Origin - CLocation;
+			BestLocation = BestLocation + Offset;
 
-		if (!SCOwner->TeleportTo(TargetLocation, CRotation)/* && !yes*/) {
+			// check if able to find an acceptable destination for this actor that doesn't embed it in world geometry
+			bTeleported = World->FindTeleportSpot(SCOwner, BestLocation, CRotation);
+			BestLocation = BestLocation - Offset;
+
+			UE_LOG(LogTemp, Log, TEXT("Best location: X=%f, Y=%f, Z=%f"), BestLocation.X, BestLocation.Y, BestLocation.Z);
+		}
+
+		if (BestLocation.ContainsNaN()) {
+			UE_LOG(LogActor, Log, TEXT("Attempted to teleport to NaN"));
+
+			return 0;
+		}
+
+		//FHitResult res;
+		bTeleported = SCOwner->GetMovementComponent()->SafeMoveUpdatedComponent(BestLocation, CRotation, true, HitResult, ETeleportType::TeleportPhysics);
+		
+		//check teleport validity
+		if (bTeleported) {
+			float TeleportedDistance = (SCOwner->GetActorLocation() - BestLocation).Size();
+			if (TeleportedDistance > TeleportDistance) {
+				SCOwner->GetMovementComponent()->SafeMoveUpdatedComponent(CLocation, CRotation, true, HitResult, ETeleportType::TeleportPhysics);
+				bTeleported = false;
+			}
+		}
+
+		if (!SCOwner->TeleportTo(TargetLocation, CRotation) && !bTeleported) {
 			DrawDebugPoint(World, TargetLocation, 8.0f, FColor::White, false, 40.0f, 0);
 			//ActorGetDistanceToCollision(TargetLocation, ECC_WorldStatic, BestLocation); //retirns nearest point to this character from TargetLocation
 
