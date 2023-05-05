@@ -62,7 +62,11 @@ int UShooterAbilityTeleport::Effect()
 
 		//if my target position is available i can teleport there
 		UE_LOG(LogTemp, Log, TEXT("Target location: X=%f, Y=%f, Z=%f"), TargetLocation.X, TargetLocation.Y, TargetLocation.Z);
-		if (!SCOwner->TeleportTo(TargetLocation, CRotation)) {
+
+		//FHitResult res;
+		//bool yes = SCOwner->GetMovementComponent()->SafeMoveUpdatedComponent(TargetLocation, CRotation, false, HitResult, ETeleportType::TeleportPhysics);
+
+		if (!SCOwner->TeleportTo(TargetLocation, CRotation)/* && !yes*/) {
 			DrawDebugPoint(World, TargetLocation, 8.0f, FColor::White, false, 40.0f, 0);
 			//ActorGetDistanceToCollision(TargetLocation, ECC_WorldStatic, BestLocation); //retirns nearest point to this character from TargetLocation
 
@@ -194,6 +198,9 @@ int UShooterAbilityTeleport::Effect()
 			UGameplayStatics::SpawnEmitterAtLocation(SCOwner, TeleportFromParticleFX, CLocation, CRotation);
 
 			AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
+			if (SCOwner->GetLocalRole() < ROLE_Authority) {
+				MulticastSound(AbilitySoundTeleport, BestLocation);
+			}
 			UGameplayStatics::PlaySoundAtLocation(SCOwner, AbilitySoundTeleport, BestLocation);
 			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));

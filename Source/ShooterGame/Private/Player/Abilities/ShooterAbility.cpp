@@ -191,6 +191,15 @@ void UShooterAbility::StopEffect()
 	IsPlaying = false;
 }
 
+void UShooterAbility::MulticastSound_Implementation(USoundCue* Sound, FVector Location)
+{
+	//only on proxies
+	AShooterCharacter* SCOwner = AbilitySystem->GetShooterAvatar();
+	if (!SCOwner->IsLocallyControlled()) {
+		UGameplayStatics::PlaySoundAtLocation(SCOwner, Sound, Location);
+	}
+}
+
 int UShooterAbility::Effect()
 {
 	return 0;
