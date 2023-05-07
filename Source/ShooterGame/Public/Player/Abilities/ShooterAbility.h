@@ -172,9 +172,6 @@ protected:
 	//world
 	UWorld* World;
 
-	UFUNCTION(Server, Unreliable)
-		void MulticastSound(USoundCue* Sound, FVector Location);
-
 private:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")

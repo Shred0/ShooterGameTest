@@ -39,6 +39,8 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const;
 
+	bool bInstanced = false;
+
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Owner")
 	AActor* GetActorOwner();
 
@@ -107,6 +109,24 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|HUD")
 	void DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos, float Scale, float Offset, bool DrawFromBottom, bool DrawFromRight, bool IsVerticalArray);
+
+	///
+	//FXs
+	///
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Sound")
+	void PlaySound(USoundCue* Sound, FVector Location);
+	UFUNCTION(Server, Reliable)
+	void ServerPlaySound(USoundCue* Sound, FVector Location);
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSound(USoundCue* Sound, FVector Location);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Particle")
+	void PlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
+	UFUNCTION(Server, Reliable)
+	void ServerPlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
 
 protected:
 	// Called when the game starts or when spawned

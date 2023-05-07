@@ -97,6 +97,8 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 	//World = GEngine->GetWorldFromContextObject(Avatar, EGetWorldErrorMode::LogAndReturnNull);
 	World = GetWorld();
 
+	IsBound = false;
+
 	//adding class references for all abilities
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt) {
 		UClass* ClassAbility = *ClassIt;
@@ -526,3 +528,49 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 	}
 }
 
+void UShooterAbilitySystem::PlaySound(USoundCue* Sound, FVector Location)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Sound");
+	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
+		ServerPlaySound(Sound, Location);
+	}
+	UGameplayStatics::PlaySoundAtLocation(ShooterAvatar, Sound, Location);
+}
+
+void UShooterAbilitySystem::ServerPlaySound_Implementation(USoundCue* Sound, FVector Location)
+{
+	MulticastSound(Sound, Location);
+}
+
+void UShooterAbilitySystem::MulticastSound_Implementation(USoundCue* Sound, FVector Location)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Sound");
+	//only on proxies
+	if (!ShooterAvatar->IsLocallyControlled()) {
+		UGameplayStatics::PlaySoundAtLocation(ShooterAvatar, Sound, Location);
+		//UGameplayStatics::SpawnSoundAttached(Sound, SCOwner->GetRootComponent());
+	}
+}
+
+void UShooterAbilitySystem::PlayParticle(UParticleSystem * FX, FVector Location, FRotator Rotation)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Particle");
+	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
+		ServerPlayParticle(FX, Location, Rotation);
+	}
+	UGameplayStatics::SpawnEmitterAtLocation(ShooterAvatar, FX, Location, Rotation);
+}
+
+void UShooterAbilitySystem::ServerPlayParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
+{
+	MulticastParticle(FX, Location, Rotation);
+}
+
+void UShooterAbilitySystem::MulticastParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Particle");
+	//only on proxies
+	if (!ShooterAvatar->IsLocallyControlled()) {
+		UGameplayStatics::SpawnEmitterAtLocation(ShooterAvatar, FX, Location, Rotation);
+	}
+}

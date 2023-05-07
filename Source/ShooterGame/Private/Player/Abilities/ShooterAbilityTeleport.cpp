@@ -225,14 +225,11 @@ int UShooterAbilityTeleport::Effect()
 			UGameplayStatics::SpawnEmitterAtLocation(SCOwner, TeleportFromParticleFX, CLocation, CRotation);
 
 			AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
-			if (SCOwner->GetLocalRole() < ROLE_Authority) {
-				MulticastSound(AbilitySoundTeleport, BestLocation);
-			}
-			UGameplayStatics::PlaySoundAtLocation(SCOwner, AbilitySoundTeleport, BestLocation);
+			AbilitySystem->PlaySound(AbilitySoundTeleport, BestLocation);
 			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//UParticleSystem* TeleportParticleFX = TeleportParticleFXOb.Object;
-			UGameplayStatics::SpawnEmitterAtLocation(SCOwner, TeleportToParticleFX, BestLocation, CRotation);
+			AbilitySystem->PlayParticle(TeleportToParticleFX, BestLocation, CRotation);
 		}
 	}
 

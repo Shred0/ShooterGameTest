@@ -901,6 +901,7 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
 
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Bind!");
 	//PlayerInputComponent->BindAction("ShooterAbilityTeleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
 	if (AbilitySystem) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability System valid");
@@ -1467,9 +1468,11 @@ void AShooterCharacter::InitializeAbilitySystem()
 	AShooterPlayerState* PlayerState = GetPlayerState<AShooterPlayerState>();
 	if (PlayerState) {
 		AbilitySystem = PlayerState->GetAbilitySystem();//UShooterAbilitySystem::MakeFor(this);
-		if (AbilitySystem) {
+		if (AbilitySystem/* && !AbilitySystem->bInstanced*/) {
 			AbilitySystem->SetFor(PlayerState, this);
 			AbilitySystem->SetKeyBindings(InputComponent);
+			AbilitySystem->bInstanced = true;
+
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
 		}
 	}
