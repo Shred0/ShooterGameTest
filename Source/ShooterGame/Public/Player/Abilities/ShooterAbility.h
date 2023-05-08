@@ -41,10 +41,24 @@ public:
 	void SetIsInCooldown(bool bInCoolDown);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	bool GetIsPassiveInCooldown();
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	void SetIsPassiveInCooldown(bool bInCoolDown);
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	float GetCooldown();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	bool GetHasPassiveCooldown();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	float GetPassiveCooldown();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown|Timer")
 	FTimerHandle GetCooldownTimer();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown|Timer")
+	FTimerHandle GetPassiveCooldownTimer();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Duration")
 	bool GetIsPlaying();
@@ -54,6 +68,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool GetIsActive();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	bool GetHasPassiveEffect();
 
 	///
 	// ability HUD
@@ -106,10 +123,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	void CooldownReset();
 
+	//called when effect is successfully played
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	void PassiveCooldownStart();
+	//called at the end of cooldown time
+	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
+	void PassiveCooldownReset();
+
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool PlayEffect();
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	void StopEffect();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	void PlayPassiveEffect();
+	//UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	//void StopPassiveEffect();
 
 protected:
 
@@ -130,10 +159,22 @@ protected:
 	bool IsInCooldown = false;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
+	bool IsPassiveInCooldown = false;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
 	float AbilityCooldown = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
+	bool HasPassiveCooldown = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
+	float PassiveAbilityCooldown = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown|Timer")
 	FTimerHandle AbilityCooldownTimer;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown|Timer")
+	FTimerHandle PassiveAbilityCooldownTimer;
 
 	//ability duration
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Duration")
@@ -145,6 +186,10 @@ protected:
 	//ability effect
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect")
 	bool IsActive = false;
+
+	//ability passive
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect|Passive")
+	bool HasPassiveEffect = false;
 
 	///
 	// ability HUD
@@ -179,4 +224,9 @@ private:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual void AfterEffect();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	virtual bool PassiveEffectCondition();
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	virtual void PassiveEffect();
 };

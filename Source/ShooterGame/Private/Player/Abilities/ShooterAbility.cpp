@@ -62,14 +62,33 @@ void UShooterAbility::SetIsInCooldown(bool bInCoolDown)
 	IsInCooldown = bInCoolDown;
 }
 
+bool UShooterAbility::GetIsPassiveInCooldown()
+{
+	return IsPassiveInCooldown;
+}
+void UShooterAbility::SetIsPassiveInCooldown(bool bInCoolDown)
+{
+	IsPassiveInCooldown = bInCoolDown;
+}
+
 float UShooterAbility::GetCooldown()
 {
 	return AbilityCooldown;
 }
 
+float UShooterAbility::GetPassiveCooldown()
+{
+	return PassiveAbilityCooldown;
+}
+
 FTimerHandle UShooterAbility::GetCooldownTimer()
 {
 	return AbilityCooldownTimer;
+}
+
+FTimerHandle UShooterAbility::GetPassiveCooldownTimer()
+{
+	return PassiveAbilityCooldownTimer;
 }
 
 bool UShooterAbility::GetIsPlaying()
@@ -85,6 +104,11 @@ float UShooterAbility::GetDuration()
 bool UShooterAbility::GetIsActive()
 {
 	return IsActive;
+}
+
+bool UShooterAbility::GetHasPassiveEffect()
+{
+	return HasPassiveEffect;
 }
 
 bool UShooterAbility::UsesEnergy()
@@ -149,6 +173,18 @@ void UShooterAbility::CooldownReset()
 	IsInCooldown = false;
 }
 
+void UShooterAbility::PassiveCooldownStart()
+{
+	if (World) {
+		World->GetTimerManager().SetTimer(PassiveAbilityCooldownTimer, this, &UShooterAbility::PassiveCooldownReset, PassiveAbilityCooldown, false);
+		IsPassiveInCooldown = true;
+	}
+}
+void UShooterAbility::PassiveCooldownReset()
+{
+	IsPassiveInCooldown = false;
+}
+
 bool UShooterAbility::PlayEffect()
 {
 	if (World->IsServer()) {
@@ -191,11 +227,30 @@ void UShooterAbility::StopEffect()
 	IsPlaying = false;
 }
 
+void UShooterAbility::PlayPassiveEffect()
+{
+	if (GetHasPassiveEffect() && PassiveEffectCondition() && !GetIsPassiveInCooldown()) {
+		PassiveEffect();
+		if (GetHasPassiveCoolDown()) {
+			PassiveCooldownStart();
+		}
+	}
+}
+
 int UShooterAbility::Effect()
 {
 	return 0;
 }
 
 void UShooterAbility::AfterEffect()
+{
+}
+
+bool UShooterAbility::PassiveEffectCondition()
+{
+	return true;
+}
+
+void UShooterAbility::PassiveEffect()
 {
 }
