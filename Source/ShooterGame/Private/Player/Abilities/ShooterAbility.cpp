@@ -76,6 +76,11 @@ float UShooterAbility::GetCooldown()
 	return AbilityCooldown;
 }
 
+bool UShooterAbility::GetHasPassiveCooldown()
+{
+	return HasPassiveCooldown;
+}
+
 float UShooterAbility::GetPassiveCooldown()
 {
 	return PassiveAbilityCooldown;
@@ -231,7 +236,7 @@ void UShooterAbility::PlayPassiveEffect()
 {
 	if (GetHasPassiveEffect() && PassiveEffectCondition() && !GetIsPassiveInCooldown()) {
 		PassiveEffect();
-		if (GetHasPassiveCoolDown()) {
+		if (GetHasPassiveCooldown()) {
 			PassiveCooldownStart();
 		}
 	}
