@@ -30,11 +30,13 @@ public:
 	// Sets default values for this actor's properties
 	UShooterAbilitySystem();
 
+	//method used to link playerstate and user's avatar to ability system
 	//static UShooterAbilitySystem* MakeFor(AShooterCharacter* Owner);
 	void SetFor(AActor* PlayerState, AShooterCharacter* Owner);
 
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
+	//used to manage passive effects and energy
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const;
@@ -51,9 +53,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
 	bool AddAbility(EShooterAbilityID ID);
 
-	//method to play abilities
+	//method to play active abilities by ID derived from input
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
 	bool PlayAbility(EShooterAbilityID ID);
+
+	//proper method to replicate passive effects
+	UFUNCTION(Server, Reliable)
+	void ServerReplicatePassiveAbility(UShooterAbility* ability);
 
 	//method to play abilities
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
@@ -78,16 +84,21 @@ public:
 	// abilities input
 	///
 
+	//method to bind all inputs to corresponding ability IDs
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Bindings")
 	void SetKeyBindings(UInputComponent* ShooterInputComponent);
 
+	//called after bind when ability input is pressed
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Bindings")
 	void AbilityLocalInputPressed(int32 InputID);
+	//called after bind when ability input is pressed, to replicate an ability from server
 	UFUNCTION(Server, reliable, WithValidation)
 	void AbilityServerInputPressed(EShooterAbilityID ID);
 
+	//called after bind when ability input is released
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Bindings")
 	void AbilityLocalInputReleased(int32 InputID);
+	//called after bind when ability input is released, to replicate an ability from server
 	UFUNCTION(Server, reliable, WithValidation)
 	void AbilityServerInputReleased(EShooterAbilityID ID);
 
@@ -118,6 +129,7 @@ public:
 	void PlaySound(USoundCue* Sound, FVector Location);
 	UFUNCTION(Server, Reliable)
 	void ServerPlaySound(USoundCue* Sound, FVector Location);
+	//callable only from server
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastSound(USoundCue* Sound, FVector Location);
 
@@ -125,6 +137,7 @@ public:
 	void PlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
 	UFUNCTION(Server, Reliable)
 	void ServerPlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
+	//callable only from server
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
 
@@ -137,6 +150,7 @@ protected:
 	//class UShooterAbility* Ability;
 	//UMyObject obj;
 
+	//list of equipped abilities accessible from coresponding ID
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities|Manage|List")
 	TMap<EShooterAbilityID, class UShooterAbility*> AbilityMap;
 

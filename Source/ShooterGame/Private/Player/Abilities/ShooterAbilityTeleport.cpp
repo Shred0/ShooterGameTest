@@ -20,7 +20,7 @@ UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
 	HUDAsset = HUDAssetOb.Object;
 	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 901, 285, 90, 95);
 
-	//custom
+	//custom properties
 	TeleportDistance = 1000.f; //about 10 meters
 }
 

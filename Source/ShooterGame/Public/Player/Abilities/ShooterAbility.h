@@ -18,6 +18,7 @@ class SHOOTERGAME_API UShooterAbility : public UObject
 public:
 	UShooterAbility();
 
+	//method to create an ability for an ability system given its reference and an ability ID
 	static UShooterAbility* MakeFor(UShooterAbilitySystem* SAS, EShooterAbilityID ID);
 
 	//~UShooterAbility();
@@ -72,6 +73,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	bool GetHasPassiveEffect();
 
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	bool DoesPassiveReplicate();
+
 	///
 	// ability HUD
 	///
@@ -100,8 +104,10 @@ public:
 	float GetEnergy();
 	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
 	void SetEnergy(float Energy);
+	//proper method to add energy to ability
 	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
 	void AddEnergy(float Energy);
+	//proper method to use energy from ability
 	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
 	void UseEnergy(float Energy);
 
@@ -113,6 +119,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
 	float GetDrainRateInTime();
 
+	//function that returns true if the conditions to refill the ability's energy are met
+	//cooldown not included
+	//needs to be overridden from child classes in order to be effective
 	UFUNCTION(BlueprintCallable, Category = "Ability|Energy")
 	virtual bool AutoRefillCondition();
 
@@ -130,19 +139,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	void PassiveCooldownReset();
 
+	//surrounding ability for the main ability effect, starts cooldown on effect activation
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool PlayEffect();
+	//stops main ability effect
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	void StopEffect();
 
+	//surrounding ability for the passive ability effect, starts cooldown on effect activation
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	void PlayPassiveEffect();
 	//UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	//void StopPassiveEffect();
 
+	//function that returns true if the conditions to play the ability's passive effect are met
+	//cooldown not included
+	//needs to be overridden from child classes in order to be effective
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	virtual bool PassiveEffectCondition();
+
 protected:
 
 	//ability systenm reference
+	//needed to replicate to server and instancing abilities
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|AbilitySystem")
 	UShooterAbilitySystem* AbilitySystem;
 	
@@ -165,7 +184,7 @@ protected:
 	float AbilityCooldown = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
-	bool HasPassiveCooldown = 0.f;
+	bool HasPassiveCooldown = false;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Cooldown")
 	float PassiveAbilityCooldown = 0.f;
@@ -191,6 +210,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect|Passive")
 	bool HasPassiveEffect = false;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect|Passive")
+	bool bPassiveReplicate = false;
+
 	///
 	// ability HUD
 	///
@@ -198,6 +220,8 @@ protected:
 	///
 	//ability functionality
 	///
+
+	//energy is refilled and drained from ability system every tick
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
 	bool bUsesEnergy = false;
@@ -214,7 +238,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Energy")
 	float DrainRateinTime = 15.f;
 
-	//world
+	//world reference based off avatar's world
 	UWorld* World;
 
 private:
@@ -225,8 +249,6 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual void AfterEffect();
 
-	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
-	virtual bool PassiveEffectCondition();
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	virtual void PassiveEffect();
 };

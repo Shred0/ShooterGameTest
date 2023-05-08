@@ -52,17 +52,26 @@ void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, 
 	//time between frames
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Delta Time: "+ FString::Printf(TEXT("%.4f"), DeltaTime));
 
-	//refilling abilities that use energy
 	TArray<UShooterAbility*> abilities = GetEquippedAbilities();
 
-	//managing energy for each equipped ability
+	//managing passive effects and energy for each equipped ability
 	for (UShooterAbility* ability : abilities) {
+		//passive effect
+		if (ability->GetHasPassiveEffect() /*&& ability->PassiveEffectCondition()*/ && !ability->GetIsPassiveInCooldown()) {
+			if (ShooterAvatar->GetLocalRole() < ROLE_Authority && ability->DoesPassiveReplicate()) {
+				ServerReplicatePassiveAbility(ability);
+			}
+			ability->PlayPassiveEffect();
+		}
+
+		//energy
 		if (ability->UsesEnergy()) {
 			//drain abilities
 			if (ability->GetIsPlaying()) {
 				//using energy from ability's pool based on elapsed time
 				float energy = (ability->GetDrainRateInTime() / 1) * DeltaTime; //refill rate is in seconds, like delta time
 				ability->UseEnergy(energy);
+				//stop ability when energy reaches zero
 				if (ability->GetEnergy() == 0) {
 					ability->StopEffect();
 				}
@@ -99,16 +108,18 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 
 	IsBound = false;
 
-	//adding class references for all abilities
+	//adding class references for all abilities based off IDs' names
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt) {
 		UClass* ClassAbility = *ClassIt;
 		//ClassAbility->GetClass();
 		const UEnum* enumID = FindObject<UEnum>(ANY_PACKAGE, TEXT("EShooterAbilityID"), true);
 		if (ClassAbility->IsChildOf(UShooterAbility::StaticClass()) && !ClassIt->HasAnyClassFlags(CLASS_Abstract) && enumID)
 		{
+			//retrieving class' name
 			FString name = ClassAbility->GetName();
 			UE_LOG(LogTemp, Log, TEXT("Class Name: %s"), *name);
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Fetching C++ class " + name);
+
 			//EShooterAbilityID AbilityID = static_cast<EShooterAbilityID>(enumID->GetValueByName(FName(TEXT(""+ClassAbility->GetName()))));
 			//int64 index = enumID->GetValueByName(FName(TEXT("" + ClassAbility->GetName())));
 			//int64 index = enumID->GetIndexByNameString(name);
@@ -123,6 +134,8 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 			//enumID->GetValueByIndex(enumID->GetIndexByNameString(name));
 			//UE_LOG(LogTemp, Warning, TEXT("Class ID: %s"), ""+index);
 			//for (EShooterAbilityID AbilityID : TEnumRange<EShooterAbilityID>()){
+
+			//if class name coresponds to an ID name, makes and equips the related ability
 			for (int32 idx = 0; idx < enumID->NumEnums(); ++idx) {
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Checking Ability class " + enumID->GetDisplayNameTextByIndex((uint8)idx).ToString());
 				if (enumID->GetDisplayNameTextByIndex((uint8)idx).ToString().Equals(ClassAbility->GetName())) {
@@ -158,11 +171,13 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 		if (IsAbilityValid(ID)) {
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "ID is valid");
 			UE_LOG(LogTemp, Warning, TEXT("adding ability with id: %s"), *enumID->GetDisplayNameTextByIndex((uint8)ID).ToString());
+
 			UShooterAbility* abilityReference = nullptr;
 			if (IsAbilityEquipped(ID)) {
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability already equipped");
 				abilityReference = *AbilityMap.Find(ID);
 			}
+
 			if (abilityReference == nullptr) {
 				if (World->IsServer()) {
 					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Creating Ability in Server");
@@ -172,6 +187,7 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 				}
 				abilityReference = UShooterAbility::MakeFor(this, ID);
 			}
+
 			if (abilityReference) {
 				equipped = true;
 				UE_LOG(LogTemp, Log, TEXT("ability instantiated"));
@@ -201,6 +217,13 @@ bool UShooterAbilitySystem::PlayAbility(EShooterAbilityID ID)
 	}
 
 	return successfullyPlayed;
+}
+
+void UShooterAbilitySystem::ServerReplicatePassiveAbility_Implementation(UShooterAbility* ability)
+{
+	if (ability && ability->GetHasPassiveEffect() && ability->DoesPassiveReplicate() && !ability->GetIsPassiveInCooldown()) {
+		ability->PlayPassiveEffect();
+	}
 }
 
 void UShooterAbilitySystem::StopAbility(EShooterAbilityID ID)

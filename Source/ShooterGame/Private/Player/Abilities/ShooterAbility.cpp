@@ -8,7 +8,7 @@
 
 UShooterAbility::UShooterAbility()
 {
-	//AbilitySystem = nullptr;
+	//all defaults
 	AbilityID = EShooterAbilityID::ShooterAbility;
 	AbilityName = FName(TEXT("None"));
 	IsInCooldown = false;
@@ -16,6 +16,25 @@ UShooterAbility::UShooterAbility()
 	IsPlaying = false;
 	AbilityDuration = 0.f;
 	IsActive = false;
+
+	//energy management
+	bUsesEnergy = false;
+	MaxEnergy = 100.0f;
+	Energy = 0.f;
+
+	bAutoRefills = true;
+	RefillRateinTime = 25.f;
+	DrainRateinTime = 15.f;
+
+	//passive management
+	HasPassiveEffect = false;
+	bPassiveReplicate = false;
+	HasPassiveCooldown = false;
+	PassiveAbilityCooldown = 0.f;
+
+	//HUD
+
+	//custom properties
 }
 
 UShooterAbility* UShooterAbility::MakeFor(UShooterAbilitySystem* SAS, EShooterAbilityID ID)
@@ -23,6 +42,7 @@ UShooterAbility* UShooterAbility::MakeFor(UShooterAbilitySystem* SAS, EShooterAb
 	UShooterAbility* abilityReference = nullptr;
 	if (SAS->IsAbilityValid(ID)) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "ID is valid");
+		//check if ability ID is valid
 		UClass* abilityClass = *SAS->AbilityClassMap.Find(ID);
 		if (abilityClass) {
 			abilityReference = NewObject<UShooterAbility>(SAS, abilityClass);
@@ -116,6 +136,11 @@ bool UShooterAbility::GetHasPassiveEffect()
 	return HasPassiveEffect;
 }
 
+bool UShooterAbility::DoesPassiveReplicate()
+{
+	return bPassiveReplicate;
+}
+
 bool UShooterAbility::UsesEnergy()
 {
 	return bUsesEnergy;
@@ -133,16 +158,19 @@ float UShooterAbility::GetEnergy()
 
 void UShooterAbility::SetEnergy(float Energy)
 {
+	//energy can't be lower than zero and higher than max
 	this->Energy = FMath::Clamp(Energy, 0.f, MaxEnergy);
 }
 
 void UShooterAbility::AddEnergy(float Energy)
 {
+	//cant add more energy than the remaining amount of energy to reach max
 	this->Energy += FMath::Clamp(Energy, 0.f, MaxEnergy - this->Energy);
 }
 
 void UShooterAbility::UseEnergy(float Energy)
 {
+	//can't use more energy than the current amount
 	this->Energy -= FMath::Clamp(Energy, 0.f, this->Energy);
 }
 
@@ -202,6 +230,7 @@ bool UShooterAbility::PlayEffect()
 	//generic error case
 	int result = -1;
 
+	//if is not in cooldown and can drain energy
 	if (!IsInCooldown || (UsesEnergy() && DrainRateinTime >= Energy)) {
 		if (UsesEnergy()) {
 			IsPlaying = true;
