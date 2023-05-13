@@ -232,10 +232,9 @@ bool UShooterAbility::PlayEffect()
 
 	//if is not in cooldown and can drain energy
 	if (!IsInCooldown || (UsesEnergy() && DrainRateinTime >= Energy)) {
-		if (UsesEnergy()) {
-			IsPlaying = true;
-		}
+		IsPlaying = true;
 		result = Effect();
+		IsPlaying = false;
 	}
 
 	bool successfullyPlayed = (result == 0) ? true : false;
@@ -261,10 +260,10 @@ void UShooterAbility::StopEffect()
 	IsPlaying = false;
 }
 
-void UShooterAbility::PlayPassiveEffect()
+void UShooterAbility::PlayPassiveEffect(float DeltaTime)
 {
 	if (GetHasPassiveEffect() && PassiveEffectCondition() && !GetIsPassiveInCooldown()) {
-		PassiveEffect();
+		PassiveEffect(DeltaTime);
 		if (GetHasPassiveCooldown()) {
 			PassiveCooldownStart();
 		}
@@ -285,6 +284,6 @@ bool UShooterAbility::PassiveEffectCondition()
 	return true;
 }
 
-void UShooterAbility::PassiveEffect()
+void UShooterAbility::PassiveEffect(float DeltaTime)
 {
 }

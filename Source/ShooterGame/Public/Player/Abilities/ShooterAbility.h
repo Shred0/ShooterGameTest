@@ -148,15 +148,9 @@ public:
 
 	//surrounding ability for the passive ability effect, starts cooldown on effect activation
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
-	void PlayPassiveEffect();
+	void PlayPassiveEffect(float DeltaTime);
 	//UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	//void StopPassiveEffect();
-
-	//function that returns true if the conditions to play the ability's passive effect are met
-	//cooldown not included
-	//needs to be overridden from child classes in order to be effective
-	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
-	virtual bool PassiveEffectCondition();
 
 protected:
 
@@ -249,6 +243,12 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual void AfterEffect();
 
+	//function that returns true if the conditions to play the ability's passive effect are met
+	//cooldown not included
+	//needs to be overridden from child classes in order to be effective
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
-	virtual void PassiveEffect();
+	virtual bool PassiveEffectCondition();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
+	virtual void PassiveEffect(float DeltaTime);
 };

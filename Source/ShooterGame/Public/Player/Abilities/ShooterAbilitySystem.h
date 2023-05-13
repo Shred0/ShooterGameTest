@@ -59,7 +59,7 @@ public:
 
 	//proper method to replicate passive effects
 	UFUNCTION(Server, Reliable)
-	void ServerReplicatePassiveAbility(UShooterAbility* ability);
+	void ServerReplicatePassiveAbility(UShooterAbility* ability, float DeltaTime);
 
 	//method to play abilities
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")

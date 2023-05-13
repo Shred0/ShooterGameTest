@@ -59,9 +59,9 @@ void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, 
 		//passive effect
 		if (ability->GetHasPassiveEffect() /*&& ability->PassiveEffectCondition()*/ && !ability->GetIsPassiveInCooldown()) {
 			if (ShooterAvatar->GetLocalRole() < ROLE_Authority && ability->DoesPassiveReplicate()) {
-				ServerReplicatePassiveAbility(ability);
+				ServerReplicatePassiveAbility(ability, DeltaTime);
 			}
-			ability->PlayPassiveEffect();
+			ability->PlayPassiveEffect(DeltaTime);
 		}
 
 		//energy
@@ -219,10 +219,10 @@ bool UShooterAbilitySystem::PlayAbility(EShooterAbilityID ID)
 	return successfullyPlayed;
 }
 
-void UShooterAbilitySystem::ServerReplicatePassiveAbility_Implementation(UShooterAbility* ability)
+void UShooterAbilitySystem::ServerReplicatePassiveAbility_Implementation(UShooterAbility* ability, float DeltaTime)
 {
 	if (ability && ability->GetHasPassiveEffect() && ability->DoesPassiveReplicate() && !ability->GetIsPassiveInCooldown()) {
-		ability->PlayPassiveEffect();
+		ability->PlayPassiveEffect(DeltaTime);
 	}
 }
 
@@ -289,7 +289,7 @@ void UShooterAbilitySystem::SetKeyBindings(UInputComponent* ShooterInputComponen
 	if (!IsBound && IsValid(ShooterInputComponent)) {
 		UEnum* enumID = FindObject<UEnum>(ANY_PACKAGE, TEXT("EShooterAbilityID"), true);
 
-		for (int32 idx = 1; idx < enumID->NumEnums() - 2; idx++)
+		for (int32 idx = 1; idx < enumID->NumEnums() - 1; idx++)
 		{
 			const FString actionName = enumID->GetNameStringByIndex(idx);
 
@@ -533,7 +533,7 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 			}
 
 			if (DrawFromBottom) {
-				IconPosY -= (Offset * Scale);
+				IconPosY -= (Offset * Scale) + (SizeY * TextItem.Scale.Y);
 			} else {
 				IconPosY += (AbilityIcon->VL * Scale) + (Offset * Scale);
 			}
@@ -545,7 +545,7 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 			}
 
 			if (DrawFromBottom) {
-				IconPosY += (AbilityIcon->VL * Scale);
+				IconPosY += (AbilityIcon->VL * Scale) + (SizeY * TextItem.Scale.Y);
 			}
 		}
 	}
