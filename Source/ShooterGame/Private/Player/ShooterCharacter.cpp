@@ -1474,6 +1474,7 @@ void AShooterCharacter::InitializeAbilitySystem()
 			AbilitySystem->bInstanced = true;
 
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
+			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityRewindTime);
 		}
 	}
 }
