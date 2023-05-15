@@ -96,7 +96,8 @@ int UShooterAbilityRewindTime::Effect()
 
 	//avatar FXs
 	Avatar->DisableInput(Cast<APlayerController>(Avatar->GetController()));
-	Avatar->GetMesh()->SetVisibility(false, true);
+	//Avatar->GetMesh()->SetVisibility(false, true);
+	AbilitySystem->SetActorVisibility(Avatar, false);
 
 	//FXs
 	AbilitySystem->PlaySound(AbilitySound, Avatar->GetActorLocation());
@@ -105,7 +106,7 @@ int UShooterAbilityRewindTime::Effect()
 	AbilitySystem->PlayParticle(RewindTimeFromParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
 
 	//rewinding!
-	TimerManager->SetTimer(RewindTimeTimer, [&]() {this->RewindTime(this);}, 0.003f, true);
+	TimerManager->SetTimer(RewindTimeTimer, [&]() {this->RewindTime(this);}, 0.0035f, true);
 
 	/*GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("X:%f Y:%f Z:%f"),
 		MovementTrace.Last().Location.X, MovementTrace.Last().Location.Y, MovementTrace.Last().Location.Z));*/
@@ -182,7 +183,7 @@ void UShooterAbilityRewindTime::RewindTime(UShooterAbilityRewindTime* ability)
 		MovementComponent->SafeMoveUpdatedComponent(Trace.Location, Trace.Rotation, true, HitResult, ETeleportType::ResetPhysics);*/
 
 		Avatar->TeleportTo(Trace.Location, Trace.Rotation);
-		Avatar->FaceRotation(Trace.Rotation);
+		Avatar->GetController()->ClientSetRotation(Trace.Rotation, true);
 
 		ability->MovementTrace.RemoveNode(ability->MovementTrace.GetTail());
 	}
@@ -194,10 +195,12 @@ void UShooterAbilityRewindTime::RewindTime(UShooterAbilityRewindTime* ability)
 
 		AShooterCharacter* Avatar = ability->GetAbilitySystem()->GetShooterAvatar();
 
+		//Avatar->GetMesh()->SetVisibility(true, true);
+		ability->GetAbilitySystem()->SetActorVisibility(Avatar, true);
+
 		UParticleSystem* RewindTimeToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 		ability->GetAbilitySystem()->PlayParticle(RewindTimeToParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
 
-		//Avatar->GetMesh()->SetVisibility(true, true);
 		Avatar->EnableInput(Cast<APlayerController>(Avatar->GetController()));
 
 		ability->IsRewindingTime = false;
