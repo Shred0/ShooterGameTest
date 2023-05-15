@@ -597,3 +597,35 @@ void UShooterAbilitySystem::MulticastParticle_Implementation(UParticleSystem* FX
 		UGameplayStatics::SpawnEmitterAtLocation(ShooterAvatar, FX, Location, Rotation);
 	}
 }
+
+void UShooterAbilitySystem::SetActorVisibility(AActor* Actor, bool bVisible)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Setting Actor Visibility");
+	if (!IsValid(Actor)) {
+		return;
+	}
+	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
+		ServerSetActorVisibility(Actor, bVisible);
+	}
+	Actor->SetActorHiddenInGame(!bVisible);
+	TArray<AActor*> children = Actor->Children;
+	//Actor->GetAllChildActors(children, true);
+	for (AActor* a : children) {
+		a->SetActorHiddenInGame(!bVisible);
+	}
+}
+
+void UShooterAbilitySystem::ServerSetActorVisibility_Implementation(AActor* Actor, bool bVisible)
+{
+	MulticastActorVisibility(Actor, bVisible);
+}
+
+void UShooterAbilitySystem::MulticastActorVisibility_Implementation(AActor* Actor, bool bVisible)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Actor Visibility");
+	//only on proxies
+	if (!Actor->HasLocalNetOwner()) {
+		//Actor->SetActorHiddenInGame(!bVisible);
+		SetActorVisibility(Actor, bVisible);
+	}
+}

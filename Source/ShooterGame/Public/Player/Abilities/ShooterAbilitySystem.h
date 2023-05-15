@@ -141,6 +141,14 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
 
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Visibility")
+	void SetActorVisibility(AActor* Actor, bool bVisible);
+	UFUNCTION(Server, Reliable)
+	void ServerSetActorVisibility(AActor* Actor, bool bVisible);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastActorVisibility(AActor* Actor, bool bVisible);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
