@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ShooterGame.h"
 #include "Misc/DateTime.h"
@@ -32,9 +32,13 @@ UShooterAbilityRewindTime::UShooterAbilityRewindTime()//:Super()
 	PassiveAbilityCooldown = 0.f;
 
 	//HUD
-	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
+	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDShooterAbilityRewindTime_Icon"));
 	HUDAsset = HUDAssetOb.Object;
-	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 901, 285, 90, 95);
+	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 0, 0, 90, 90);
+
+	//sound
+	static ConstructorHelpers::FObjectFinder<USoundCue> AbilitySoundOb(TEXT("/Game/Sounds/Abilities/SCue_Ability_RewindTime"));
+	AbilitySound = AbilitySoundOb.Object;
 
 	//custom properties
 	TimeToRewind = 3.f; //3 seconds
@@ -89,7 +93,18 @@ int UShooterAbilityRewindTime::Effect()
 	//World->GetTimerManager().SetTimer(Timer, [&]() {TimerDelegate.ExecuteIfBound(); }, 0.05f, CanRepeat);
 	//TimerManager->SetTimer(Timer, [&TimerDelegate]() {TimerDelegate.ExecuteIfBound(); }, 0.05f,);
 	IsRewindingTime = true;	
+
+	//avatar FXs
 	Avatar->DisableInput(Cast<APlayerController>(Avatar->GetController()));
+	Avatar->GetMesh()->SetVisibility(false, true);
+
+	//FXs
+	AbilitySystem->PlaySound(AbilitySound, Avatar->GetActorLocation());
+
+	UParticleSystem* RewindTimeFromParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Muzzle/P_Launcher_MF.P_Launcher_MF"));
+	AbilitySystem->PlayParticle(RewindTimeFromParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
+
+	//rewinding!
 	TimerManager->SetTimer(RewindTimeTimer, [&]() {this->RewindTime(this);}, 0.003f, true);
 
 	/*GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("X:%f Y:%f Z:%f"),
@@ -176,8 +191,15 @@ void UShooterAbilityRewindTime::RewindTime(UShooterAbilityRewindTime* ability)
 	if (ability->MovementTrace.Num() == 0) {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Reset timer");
 		ability->World->GetTimerManager().ClearTimer(ability->RewindTimeTimer);
+
 		AShooterCharacter* Avatar = ability->GetAbilitySystem()->GetShooterAvatar();
+
+		UParticleSystem* RewindTimeToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
+		ability->GetAbilitySystem()->PlayParticle(RewindTimeToParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
+
+		//Avatar->GetMesh()->SetVisibility(true, true);
 		Avatar->EnableInput(Cast<APlayerController>(Avatar->GetController()));
+
 		ability->IsRewindingTime = false;
 	}
 }
