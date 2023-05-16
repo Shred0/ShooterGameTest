@@ -233,5 +233,6 @@ int UShooterAbilityTeleport::Effect()
 		}
 	}
 
+	StopEffect();
 	return 0;
 }

@@ -231,10 +231,10 @@ bool UShooterAbility::PlayEffect()
 	int result = -1;
 
 	//if is not in cooldown and can drain energy
-	if (!IsInCooldown || (UsesEnergy() && DrainRateinTime >= Energy)) {
+	if (!IsInCooldown && (XOR(!UsesEnergy(), DrainRateinTime <= Energy))) {
 		IsPlaying = true;
 		result = Effect();
-		IsPlaying = false;
+		//IsPlaying = false;
 	}
 
 	bool successfullyPlayed = (result == 0) ? true : false;
@@ -248,16 +248,18 @@ bool UShooterAbility::PlayEffect()
 
 void UShooterAbility::StopEffect()
 {
-	if (World->IsServer()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Server");
-	}
-	else {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Client");
-	}
+	if (IsPlaying == true) {
+		if (World->IsServer()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Server");
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Client");
+		}
 
-	AfterEffect();
+		AfterEffect();
 
-	IsPlaying = false;
+		IsPlaying = false;
+	}
 }
 
 void UShooterAbility::PlayPassiveEffect(float DeltaTime)
