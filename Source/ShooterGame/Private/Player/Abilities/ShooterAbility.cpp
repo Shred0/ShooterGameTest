@@ -8,14 +8,32 @@
 
 UShooterAbility::UShooterAbility()
 {
+	//ReplicateSubobjects(,);
+	SetIsReplicatedByDefault(true);
+	bTickReplicate = true;
+	//bRegistered = true;
+	SetIsReplicated(true);
+	RegisterComponent();
+	PrimaryComponentTick.Target = this;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bAllowTickOnDedicatedServer = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+	PrimaryComponentTick.SetTickFunctionEnable(true);
+	SetComponentTickEnabled(true);
+	//PrimaryComponentTick.RegisterTickFunction(GetComponentLevel());
+
 	//all defaults
-	AbilityID = EShooterAbilityID::ShooterAbility;
+	/*AbilityID = EShooterAbilityID::ShooterAbility;
 	AbilityName = FName(TEXT("None"));
 	IsInCooldown = false;
 	AbilityCooldown = 0.f;
 	IsPlaying = false;
 	AbilityDuration = 0.f;
-	IsActive = false;
+	IsEffectActive = false;
+
+	//tick effect
+	HasTickEffect = false;
+	bTickReplicate = false;
 
 	//energy management
 	bUsesEnergy = false;
@@ -30,11 +48,41 @@ UShooterAbility::UShooterAbility()
 	HasPassiveEffect = false;
 	bPassiveReplicate = false;
 	HasPassiveCooldown = false;
-	PassiveAbilityCooldown = 0.f;
+	PassiveAbilityCooldown = 0.f;*/
 
 	//HUD
 
 	//custom properties
+}
+
+// Called when the game starts or when spawned
+void UShooterAbility::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+// Called every frame
+void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability is Ticking");
+	if (GetWorld()->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Ticks in Server");
+	}
+	else {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Ticks in Client");
+	}
+
+	//tick effect management
+	if (HasTickEffect && IsEffectActive) {
+		PlayTickEffect(DeltaTime);
+	}
+}
+
+void UShooterAbility::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
 UShooterAbility* UShooterAbility::MakeFor(UShooterAbilitySystem* SAS, EShooterAbilityID ID)
@@ -46,8 +94,12 @@ UShooterAbility* UShooterAbility::MakeFor(UShooterAbilitySystem* SAS, EShooterAb
 		UClass* abilityClass = *SAS->AbilityClassMap.Find(ID);
 		if (abilityClass) {
 			abilityReference = NewObject<UShooterAbility>(SAS, abilityClass);
+			//abilityReference->SetIsReplicated(true);
+			//abilityReference->RegisterComponent();
+			//abilityReference->PrimaryComponentTick.bCanEverTick = true;
 			abilityReference->AbilitySystem = SAS;
-			abilityReference->World = SAS->World;
+			//abilityReference->World = SAS->World;
+			abilityReference->PrimaryComponentTick.RegisterTickFunction(SAS->GetComponentLevel());
 		}
 	}
 
@@ -126,9 +178,9 @@ float UShooterAbility::GetDuration()
 	return AbilityDuration;
 }
 
-bool UShooterAbility::GetIsActive()
+bool UShooterAbility::GetIsEffectActive()
 {
-	return IsActive;
+	return IsEffectActive;
 }
 
 bool UShooterAbility::GetHasPassiveEffect()
@@ -196,8 +248,8 @@ bool UShooterAbility::AutoRefillCondition()
 
 void UShooterAbility::CooldownStart()
 {
-	if (World) {
-		World->GetTimerManager().SetTimer(AbilityCooldownTimer, this, &UShooterAbility::CooldownReset, AbilityCooldown, false);
+	if (GetWorld()) {
+		GetWorld()->GetTimerManager().SetTimer(AbilityCooldownTimer, this, &UShooterAbility::CooldownReset, AbilityCooldown, false);
 		IsInCooldown = true;
 	}
 }
@@ -208,8 +260,8 @@ void UShooterAbility::CooldownReset()
 
 void UShooterAbility::PassiveCooldownStart()
 {
-	if (World) {
-		World->GetTimerManager().SetTimer(PassiveAbilityCooldownTimer, this, &UShooterAbility::PassiveCooldownReset, PassiveAbilityCooldown, false);
+	if (GetWorld()) {
+		GetWorld()->GetTimerManager().SetTimer(PassiveAbilityCooldownTimer, this, &UShooterAbility::PassiveCooldownReset, PassiveAbilityCooldown, false);
 		IsPassiveInCooldown = true;
 	}
 }
@@ -220,7 +272,7 @@ void UShooterAbility::PassiveCooldownReset()
 
 bool UShooterAbility::PlayEffect()
 {
-	if (World->IsServer()) {
+	if (GetWorld()->IsServer()) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Ability in Server");
 	}
 	else {
@@ -239,7 +291,7 @@ bool UShooterAbility::PlayEffect()
 
 	bool successfullyPlayed = (result == 0) ? true : false;
 
-	if (successfullyPlayed) {
+	if (successfullyPlayed && AbilityCooldown > 0) {
 		CooldownStart();
 	}
 
@@ -249,7 +301,7 @@ bool UShooterAbility::PlayEffect()
 void UShooterAbility::StopEffect()
 {
 	if (IsPlaying == true) {
-		if (World->IsServer()) {
+		if (GetWorld()->IsServer()) {
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Ability in Server");
 		}
 		else {
@@ -262,17 +314,66 @@ void UShooterAbility::StopEffect()
 	}
 }
 
+bool UShooterAbility::PlayTickEffect(float DeltaTime)
+{
+	if (GetWorld()->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Tick Ability in Server");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Tick Ability in Client");
+	}
+
+	//generic error case
+	int result = -1;
+
+	//if is not in cooldown and can drain energy
+	if (HasTickEffect && IsEffectActive && !IsInCooldown && (XOR(!UsesEnergy(), DrainRateinTime <= Energy))) {
+		//IsPlaying = true;
+		result = TickEffect(DeltaTime);
+		//IsPlaying = false;
+	}
+
+	bool successfullyPlayed = (result == 0) ? true : false;
+
+	/*if (successfullyPlayed && AbilityCooldown > 0) {
+		CooldownStart();
+	}*/
+
+	return successfullyPlayed;
+}
+
+void UShooterAbility::StopTickEffect()
+{
+	if (IsPlaying == true) {
+		if (GetWorld()->IsServer()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Tick Ability in Server");
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Tick Ability in Client");
+		}
+
+		//AfterEffect();
+
+		//IsPlaying = false;
+	}
+}
+
 void UShooterAbility::PlayPassiveEffect(float DeltaTime)
 {
 	if (GetHasPassiveEffect() && PassiveEffectCondition() && !GetIsPassiveInCooldown()) {
 		PassiveEffect(DeltaTime);
-		if (GetHasPassiveCooldown()) {
+		if (GetHasPassiveCooldown() && PassiveAbilityCooldown > 0) {
 			PassiveCooldownStart();
 		}
 	}
 }
 
 int UShooterAbility::Effect()
+{
+	return 0;
+}
+
+int UShooterAbility::TickEffect(float DeltaTime)
 {
 	return 0;
 }

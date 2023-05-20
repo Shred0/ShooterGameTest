@@ -12,11 +12,15 @@
  * 
  */
 UCLASS(BlueprintType)
-class SHOOTERGAME_API UShooterAbility : public UObject
+class SHOOTERGAME_API UShooterAbility : public UActorComponent//UObject
 {
 	GENERATED_BODY()
 public:
 	UShooterAbility();
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const;
 
 	//method to create an ability for an ability system given its reference and an ability ID
 	static UShooterAbility* MakeFor(UShooterAbilitySystem* SAS, EShooterAbilityID ID);
@@ -68,7 +72,7 @@ public:
 	float GetDuration();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
-	bool GetIsActive();
+	bool GetIsEffectActive();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	bool GetHasPassiveEffect();
@@ -139,12 +143,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Cooldown")
 	void PassiveCooldownReset();
 
-	//surrounding ability for the main ability effect, starts cooldown on effect activation
+	//method for the main ability effect, starts cooldown on effect activation
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	bool PlayEffect();
 	//stops main ability effect
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	void StopEffect();
+
+	//method for the main ability effect, starts cooldown on effect activation
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Tick")
+	bool PlayTickEffect(float DeltaTime);
+	//stops main ability effect
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Tick")
+	void StopTickEffect();
 
 	//surrounding ability for the passive ability effect, starts cooldown on effect activation
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
@@ -153,6 +164,9 @@ public:
 	//void StopPassiveEffect();
 
 protected:
+
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	//ability systenm reference
 	//needed to replicate to server and instancing abilities
@@ -198,7 +212,14 @@ protected:
 
 	//ability effect
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect")
-	bool IsActive = false;
+	bool IsEffectActive = false;
+
+	//ability tick effect
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect|Tick")
+	bool HasTickEffect = false;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect|Tick")
+	bool bTickReplicate = false;
 
 	//ability passive
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect|Passive")
@@ -233,12 +254,15 @@ protected:
 	float DrainRateinTime = 15.f;
 
 	//world reference based off avatar's world
-	UWorld* World;
+	//UWorld* World;
 
 private:
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual int Effect();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Tick")
+	virtual int TickEffect(float DeltaTime);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual void AfterEffect();

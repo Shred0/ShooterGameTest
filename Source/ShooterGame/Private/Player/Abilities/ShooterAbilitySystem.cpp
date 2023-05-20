@@ -14,7 +14,9 @@ UShooterAbilitySystem::UShooterAbilitySystem()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	//PrimaryActorTick.bCanEverTick = false;
 	PrimaryComponentTick.bCanEverTick = true;
-	//bReplicates = true;
+	//bReplicates = true
+
+	//ReplicateSubobjects(,);
 
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	HUDAsset = HUDAssetOb.Object;
@@ -104,7 +106,6 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 	ActorOwner = PlayerState;
 	ShooterAvatar = Avatar;
 	//World = GEngine->GetWorldFromContextObject(Avatar, EGetWorldErrorMode::LogAndReturnNull);
-	World = GetWorld();
 
 	IsBound = false;
 
@@ -162,6 +163,9 @@ AShooterCharacter * UShooterAbilitySystem::GetShooterAvatar()
 
 bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 {
+	if (GetOwnerRole() < ROLE_Authority) {
+		//ServerAddAbility(ID);
+	}
 	//creating a reference to the ability i want to use
 	bool equipped = false;
 	UEnum* enumID = FindObject<UEnum>(ANY_PACKAGE, TEXT("EShooterAbilityID"), true);
@@ -179,7 +183,7 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 			}
 
 			if (abilityReference == nullptr) {
-				if (World->IsServer()) {
+				if (GetWorld()->IsServer()) {
 					GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Creating Ability in Server");
 				}
 				else {
@@ -195,6 +199,7 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 				AbilityMap.Add(ID, abilityReference);
 				UE_LOG(LogTemp, Log, TEXT("ability name: %s"), *abilityReference->GetName());
 				//AddOnScreenDebugMessage(0, 2.f, FColor::Magenta, abilityReference->GetName());
+				//SetComponentTickEnabled(true)
 			}
 		}
 	}
@@ -202,6 +207,16 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 	return (equipped) ? true : false;
 
 	//return true;
+}
+
+void UShooterAbilitySystem::ServerAddAbility_Implementation(EShooterAbilityID ID)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Adding Ability in Server");
+	AddAbility(ID);
+}
+bool UShooterAbilitySystem::ServerAddAbility_Validate(EShooterAbilityID ID)
+{
+	return true;
 }
 
 bool UShooterAbilitySystem::PlayAbility(EShooterAbilityID ID)

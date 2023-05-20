@@ -3,7 +3,7 @@
 #include "ShooterGame.h"
 #include "Player/Abilities/ShooterAbilityTeleport.h"
 
-UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
+UShooterAbilityTeleport::UShooterAbilityTeleport():Super()
 {
 	///defaults
 	//AbilitySystem = nullptr;
@@ -13,7 +13,7 @@ UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
 	AbilityCooldown = 1.5f;
 	IsPlaying = false;
 	AbilityDuration = 0.f;
-	IsActive = false;
+	IsEffectActive = false;
 
 	//HUD
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
@@ -26,7 +26,7 @@ UShooterAbilityTeleport::UShooterAbilityTeleport()//:Super()
 
 int UShooterAbilityTeleport::Effect()
 {
-	if (World->IsServer()) {
+	if (GetWorld()->IsServer()) {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Teleport Effect in Server");
 	}
 	else {
@@ -69,7 +69,7 @@ int UShooterAbilityTeleport::Effect()
 			BestLocation = BestLocation + Offset;
 
 			// check if able to find an acceptable destination for this actor that doesn't embed it in world geometry
-			bTeleported = World->FindTeleportSpot(SCOwner, BestLocation, CRotation);
+			bTeleported = GetWorld()->FindTeleportSpot(SCOwner, BestLocation, CRotation);
 			BestLocation = BestLocation - Offset;
 
 			UE_LOG(LogTemp, Log, TEXT("Best location: X=%f, Y=%f, Z=%f"), BestLocation.X, BestLocation.Y, BestLocation.Z);
@@ -94,7 +94,7 @@ int UShooterAbilityTeleport::Effect()
 		}
 
 		if (!SCOwner->TeleportTo(TargetLocation, CRotation) && !bTeleported) {
-			DrawDebugPoint(World, TargetLocation, 8.0f, FColor::White, false, 40.0f, 0);
+			DrawDebugPoint(GetWorld(), TargetLocation, 8.0f, FColor::White, false, 40.0f, 0);
 			//ActorGetDistanceToCollision(TargetLocation, ECC_WorldStatic, BestLocation); //retirns nearest point to this character from TargetLocation
 
 			///solution 1
@@ -184,29 +184,29 @@ int UShooterAbilityTeleport::Effect()
 			SCOwner->GetActorEyesViewPoint(TEyePos, CRotation);
 			BestLocation.Z = TEyePos.Z;
 			//controllo collisioni fino a proiezione di target
-			DrawDebugPoint(World, TEyePos, 8.0f, FColor::Red, false, 40.0f, 0);
-			DrawDebugPoint(World, BestLocation, 8.0f, FColor::Blue, false, 40.0f, 0);
-			World->LineTraceSingleByChannel(HitResult, TEyePos, BestLocation, ECC_WorldStatic, TraceParams);
+			DrawDebugPoint(GetWorld(), TEyePos, 8.0f, FColor::Red, false, 40.0f, 0);
+			DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Blue, false, 40.0f, 0);
+			GetWorld()->LineTraceSingleByChannel(HitResult, TEyePos, BestLocation, ECC_WorldStatic, TraceParams);
 			//se intercetto una collisione, sovrascrivo best location e nuova coordinata target
 			if (HitResult.bBlockingHit) {
 				BestLocation = HitResult.Location;
-				DrawDebugPoint(World, BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
+				DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
 				TargetLocation.X = BestLocation.X;
 				TargetLocation.Y = BestLocation.Y;
-				DrawDebugPoint(World, TargetLocation, 8.0f, FColor::Cyan, false, 40.0f, 0);
+				DrawDebugPoint(GetWorld(), TargetLocation, 8.0f, FColor::Cyan, false, 40.0f, 0);
 			}
 			//controllo collisioni in basso verso target
-			DrawDebugLine(World, TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
-			World->LineTraceSingleByChannel(HitResult, BestLocation, TargetLocation, ECC_WorldStatic, TraceParams);
+			DrawDebugLine(GetWorld(), TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+			GetWorld()->LineTraceSingleByChannel(HitResult, BestLocation, TargetLocation, ECC_WorldStatic, TraceParams);
 			BestLocation = TargetLocation;
 			//aggiorno best location
 			if (HitResult.bBlockingHit) {
 				BestLocation = HitResult.Location;
-				DrawDebugPoint(World, BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
+				DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
 			}
 			TEyePos.X = BestLocation.X;
 			TEyePos.Y = BestLocation.Y;
-			DrawDebugLine(World, TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+			DrawDebugLine(GetWorld(), TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
 
 			//effettuo il teletrasporto
 			UE_LOG(LogTemp, Log, TEXT("Best location: X=%f, Y=%f, Z=%f"), BestLocation.X, BestLocation.Y, BestLocation.Z);
