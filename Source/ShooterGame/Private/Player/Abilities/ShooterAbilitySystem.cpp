@@ -574,12 +574,10 @@ void UShooterAbilitySystem::PlaySound(USoundCue* Sound, FVector Location)
 	}
 	UGameplayStatics::PlaySoundAtLocation(ShooterAvatar, Sound, Location);
 }
-
 void UShooterAbilitySystem::ServerPlaySound_Implementation(USoundCue* Sound, FVector Location)
 {
 	MulticastSound(Sound, Location);
 }
-
 void UShooterAbilitySystem::MulticastSound_Implementation(USoundCue* Sound, FVector Location)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Sound");
@@ -587,6 +585,56 @@ void UShooterAbilitySystem::MulticastSound_Implementation(USoundCue* Sound, FVec
 	if (!ShooterAvatar->IsLocallyControlled()) {
 		UGameplayStatics::PlaySoundAtLocation(ShooterAvatar, Sound, Location);
 		//UGameplayStatics::SpawnSoundAttached(Sound, SCOwner->GetRootComponent());
+	}
+}
+
+void UShooterAbilitySystem::PlayAudioComponent(UAudioComponent* AudioComponent, float StartTime)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Audio Component");
+	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
+		ServerPlayAudioComponent(AudioComponent, StartTime);
+	}
+	if (AudioComponent) {
+		AudioComponent->Play(StartTime);
+	}
+}
+void UShooterAbilitySystem::ServerPlayAudioComponent_Implementation(UAudioComponent* AudioComponent, float StartTime)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server Playing Ability Audio Component");
+	MulticastAudioComponent(AudioComponent, StartTime);
+}
+void UShooterAbilitySystem::MulticastAudioComponent_Implementation(UAudioComponent* AudioComponent, float StartTime)
+{
+	if (!ShooterAvatar->IsLocallyControlled()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Audio Component");
+		if (AudioComponent) {
+			AudioComponent->Play(StartTime);
+		}
+	}
+}
+
+void UShooterAbilitySystem::StopAudioComponent(UAudioComponent* AudioComponent)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Stopping Ability Audio Component");
+	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
+		ServerStopAudioComponent(AudioComponent);
+	}
+	if (AudioComponent) {
+		AudioComponent->Stop();
+	}
+}
+void UShooterAbilitySystem::ServerStopAudioComponent_Implementation(UAudioComponent* AudioComponent)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server Stopping Ability Audio Component");
+	MulticastStopAudioComponent(AudioComponent);
+}
+void UShooterAbilitySystem::MulticastStopAudioComponent_Implementation(UAudioComponent* AudioComponent)
+{
+	if (!ShooterAvatar->IsLocallyControlled()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Stop Ability Audio Component");
+		if (AudioComponent) {
+			AudioComponent->Stop();
+		}
 	}
 }
 

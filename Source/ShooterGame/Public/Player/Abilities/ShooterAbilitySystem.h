@@ -135,6 +135,22 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastSound(USoundCue* Sound, FVector Location);
 
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Sound")
+	void PlayAudioComponent(UAudioComponent* AudioComponent, float StartTime = 0.f);
+	UFUNCTION(Server, Reliable)
+	void ServerPlayAudioComponent(UAudioComponent* AudioComponent, float StartTime = 0.f);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastAudioComponent(UAudioComponent* AudioComponent, float StartTime = 0.f);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Sound")
+	void StopAudioComponent(UAudioComponent* AudioComponent);
+	UFUNCTION(Server, Reliable)
+	void ServerStopAudioComponent(UAudioComponent* AudioComponent);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStopAudioComponent(UAudioComponent* AudioComponent);
+
 	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Particle")
 	void PlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
 	UFUNCTION(Server, Reliable)
