@@ -68,7 +68,7 @@ void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability is Ticking");
 	if (GetWorld()->IsServer()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Ticks in Server");
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Ticks in Server");
 	}
 	else {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Ticks in Client");
@@ -76,6 +76,7 @@ void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	//tick effect management
 	if (HasTickEffect && IsEffectActive) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability should tick");
 		PlayTickEffect(DeltaTime);
 	}
 }

@@ -52,6 +52,8 @@ public:
 	//method to add abilities
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
 	bool AddAbility(EShooterAbilityID ID);
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerAddAbility(EShooterAbilityID ID);
 
 	//method to play active abilities by ID derived from input
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
