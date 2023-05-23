@@ -54,12 +54,12 @@ void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, 
 	//time between frames
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Delta Time: "+ FString::Printf(TEXT("%.4f"), DeltaTime));
 
-	TArray<UShooterAbility*> abilities = GetEquippedAbilities();
+	//TArray<UShooterAbility*> abilities = GetEquippedAbilities();
 
 	//managing passive effects and energy for each equipped ability
-	for (UShooterAbility* ability : abilities) {
+	/*for (UShooterAbility* ability : abilities) {
 		//passive effect
-		if (ability->GetHasPassiveEffect() /*&& ability->PassiveEffectCondition()*/ && !ability->GetIsPassiveInCooldown()) {
+		if (ability->GetHasPassiveEffect() && !ability->GetIsPassiveInCooldown()) {
 			if (ShooterAvatar->GetLocalRole() < ROLE_Authority && ability->DoesPassiveReplicate()) {
 				ServerReplicatePassiveAbility(ability, DeltaTime);
 			}
@@ -88,7 +88,7 @@ void UShooterAbilitySystem::TickComponent(float DeltaTime, ELevelTick TickType, 
 				}
 			}
 		}
-	}
+	}*/
 }
 
 void UShooterAbilitySystem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -232,13 +232,6 @@ bool UShooterAbilitySystem::PlayAbility(EShooterAbilityID ID)
 	}
 
 	return successfullyPlayed;
-}
-
-void UShooterAbilitySystem::ServerReplicatePassiveAbility_Implementation(UShooterAbility* ability, float DeltaTime)
-{
-	if (ability && ability->GetHasPassiveEffect() && ability->DoesPassiveReplicate() && !ability->GetIsPassiveInCooldown()) {
-		ability->PlayPassiveEffect(DeltaTime);
-	}
 }
 
 void UShooterAbilitySystem::StopAbility(EShooterAbilityID ID)
@@ -563,132 +556,5 @@ void UShooterAbilitySystem::DrawAbilityHUD(UCanvas* &Canvas, FVector2D StartPos,
 				IconPosY += (AbilityIcon->VL * Scale) + (SizeY * TextItem.Scale.Y);
 			}
 		}
-	}
-}
-
-void UShooterAbilitySystem::PlaySound(USoundCue* Sound, FVector Location)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Sound");
-	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
-		ServerPlaySound(Sound, Location);
-	}
-	UGameplayStatics::PlaySoundAtLocation(ShooterAvatar, Sound, Location);
-}
-void UShooterAbilitySystem::ServerPlaySound_Implementation(USoundCue* Sound, FVector Location)
-{
-	MulticastSound(Sound, Location);
-}
-void UShooterAbilitySystem::MulticastSound_Implementation(USoundCue* Sound, FVector Location)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Sound");
-	//only on proxies
-	if (!ShooterAvatar->IsLocallyControlled()) {
-		UGameplayStatics::PlaySoundAtLocation(ShooterAvatar, Sound, Location);
-		//UGameplayStatics::SpawnSoundAttached(Sound, SCOwner->GetRootComponent());
-	}
-}
-
-void UShooterAbilitySystem::PlayAudioComponent(UAudioComponent* AudioComponent, float StartTime)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Audio Component");
-	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
-		ServerPlayAudioComponent(AudioComponent, StartTime);
-	}
-	if (AudioComponent) {
-		AudioComponent->Play(StartTime);
-	}
-}
-void UShooterAbilitySystem::ServerPlayAudioComponent_Implementation(UAudioComponent* AudioComponent, float StartTime)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server Playing Ability Audio Component");
-	MulticastAudioComponent(AudioComponent, StartTime);
-}
-void UShooterAbilitySystem::MulticastAudioComponent_Implementation(UAudioComponent* AudioComponent, float StartTime)
-{
-	if (!ShooterAvatar->IsLocallyControlled()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Audio Component");
-		if (AudioComponent) {
-			AudioComponent->Play(StartTime);
-		}
-	}
-}
-
-void UShooterAbilitySystem::StopAudioComponent(UAudioComponent* AudioComponent)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Stopping Ability Audio Component");
-	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
-		ServerStopAudioComponent(AudioComponent);
-	}
-	if (AudioComponent) {
-		AudioComponent->Stop();
-	}
-}
-void UShooterAbilitySystem::ServerStopAudioComponent_Implementation(UAudioComponent* AudioComponent)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server Stopping Ability Audio Component");
-	MulticastStopAudioComponent(AudioComponent);
-}
-void UShooterAbilitySystem::MulticastStopAudioComponent_Implementation(UAudioComponent* AudioComponent)
-{
-	if (!ShooterAvatar->IsLocallyControlled()) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Stop Ability Audio Component");
-		if (AudioComponent) {
-			AudioComponent->Stop();
-		}
-	}
-}
-
-void UShooterAbilitySystem::PlayParticle(UParticleSystem * FX, FVector Location, FRotator Rotation)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Particle");
-	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
-		ServerPlayParticle(FX, Location, Rotation);
-	}
-	UGameplayStatics::SpawnEmitterAtLocation(ShooterAvatar, FX, Location, Rotation);
-}
-
-void UShooterAbilitySystem::ServerPlayParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
-{
-	MulticastParticle(FX, Location, Rotation);
-}
-
-void UShooterAbilitySystem::MulticastParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Particle");
-	//only on proxies
-	if (!ShooterAvatar->IsLocallyControlled()) {
-		UGameplayStatics::SpawnEmitterAtLocation(ShooterAvatar, FX, Location, Rotation);
-	}
-}
-
-void UShooterAbilitySystem::SetActorVisibility(AActor* Actor, bool bVisible)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Setting Actor Visibility");
-	if (!IsValid(Actor)) {
-		return;
-	}
-	if (ShooterAvatar->GetLocalRole() < ROLE_Authority) {
-		ServerSetActorVisibility(Actor, bVisible);
-	}
-	Actor->SetActorHiddenInGame(!bVisible);
-	TArray<AActor*> children = Actor->Children;
-	//Actor->GetAllChildActors(children, true);
-	for (AActor* a : children) {
-		a->SetActorHiddenInGame(!bVisible);
-	}
-}
-
-void UShooterAbilitySystem::ServerSetActorVisibility_Implementation(AActor* Actor, bool bVisible)
-{
-	MulticastActorVisibility(Actor, bVisible);
-}
-
-void UShooterAbilitySystem::MulticastActorVisibility_Implementation(AActor* Actor, bool bVisible)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Actor Visibility");
-	//only on proxies
-	if (!Actor->HasLocalNetOwner()) {
-		//Actor->SetActorHiddenInGame(!bVisible);
-		SetActorVisibility(Actor, bVisible);
 	}
 }

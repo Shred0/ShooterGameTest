@@ -74,6 +74,34 @@ void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Ticks in Client");
 	}
 
+	//passive effect management
+	if (GetHasPassiveEffect() /*&& ability->PassiveEffectCondition()*/ && !GetIsPassiveInCooldown()) {
+		PlayPassiveEffect(DeltaTime);
+	}
+
+	//energy management
+	if (UsesEnergy()) {
+		//drain abilities
+		if (GetIsPlaying()) {
+			//using energy from ability's pool based on elapsed time
+			float energy = (GetDrainRateInTime() / 1) * DeltaTime; //refill rate is in seconds, like delta time
+			UseEnergy(energy);
+			//stop ability when energy reaches zero
+			if (GetEnergy() == 0) {
+				StopEffect();
+			}
+		}
+
+		//refill abilities
+		if (!GetIsPlaying() && AutoRefills() && AutoRefillCondition()) {
+			if (GetEnergy() < GetMaxEnergy()) {
+				//adding energy on ability's pool based on elapsed time
+				float energy = (GetRefillRateInTime() / 1) * DeltaTime; //refill rate is in seconds, like delta time
+				AddEnergy(energy);
+			}
+		}
+	}
+
 	//tick effect management
 	if (HasTickEffect && IsEffectActive) {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability should tick");
@@ -343,6 +371,19 @@ bool UShooterAbility::PlayTickEffect(float DeltaTime)
 	return successfullyPlayed;
 }
 
+void UShooterAbility::StartTickEffect()
+{
+	if (IsPlaying == true) {
+		if (GetWorld()->IsServer()) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Starting Tick Ability in Server");
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Starting Tick Ability in Client");
+		}
+
+		IsEffectActive = true;
+	}
+}
 void UShooterAbility::StopTickEffect()
 {
 	if (IsPlaying == true) {
@@ -353,19 +394,161 @@ void UShooterAbility::StopTickEffect()
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Stopping Tick Ability in Client");
 		}
 
-		//AfterEffect();
-
-		//IsPlaying = false;
+		IsEffectActive = false;
 	}
 }
 
 void UShooterAbility::PlayPassiveEffect(float DeltaTime)
 {
+	/*if (GetWorld()->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Server");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Client");
+	}*/
+
 	if (GetHasPassiveEffect() && PassiveEffectCondition() && !GetIsPassiveInCooldown()) {
+		if (GetOwnerRole() < ROLE_Authority && DoesPassiveReplicate()) {
+			ServerPlayPassiveEffect(DeltaTime);
+		}
 		PassiveEffect(DeltaTime);
 		if (GetHasPassiveCooldown() && PassiveAbilityCooldown > 0) {
 			PassiveCooldownStart();
 		}
+	}
+}
+void UShooterAbility::ServerPlayPassiveEffect_Implementation(float DeltaTime)
+{
+	PlayPassiveEffect(DeltaTime);
+}
+
+///
+//FXs
+///
+void UShooterAbility::PlaySound(USoundCue* Sound, FVector Location)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Sound");
+	if (GetOwnerRole() < ROLE_Authority) {
+		ServerPlaySound(Sound, Location);
+	}
+	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
+}
+void UShooterAbility::ServerPlaySound_Implementation(USoundCue* Sound, FVector Location)
+{
+	MulticastSound(Sound, Location);
+}
+void UShooterAbility::MulticastSound_Implementation(USoundCue* Sound, FVector Location)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Sound");
+	//only on proxies
+	if (!GetOwner()->HasLocalNetOwner()) {
+		UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
+		//UGameplayStatics::SpawnSoundAttached(Sound, SCOwner->GetRootComponent());
+	}
+}
+
+void UShooterAbility::PlayAudioComponent(UAudioComponent* AudioComponent, float StartTime)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Audio Component");
+	if (GetOwnerRole() < ROLE_Authority) {
+		ServerPlayAudioComponent(AudioComponent, StartTime);
+	}
+	if (AudioComponent) {
+		AudioComponent->Play(StartTime);
+	}
+}
+void UShooterAbility::ServerPlayAudioComponent_Implementation(UAudioComponent* AudioComponent, float StartTime)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server Playing Ability Audio Component");
+	MulticastAudioComponent(AudioComponent, StartTime);
+}
+void UShooterAbility::MulticastAudioComponent_Implementation(UAudioComponent* AudioComponent, float StartTime)
+{
+	if (!GetOwner()->HasLocalNetOwner()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Audio Component");
+		if (AudioComponent) {
+			AudioComponent->Play(StartTime);
+		}
+	}
+}
+
+void UShooterAbility::StopAudioComponent(UAudioComponent* AudioComponent)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Stopping Ability Audio Component");
+	if (GetOwnerRole() < ROLE_Authority) {
+		ServerStopAudioComponent(AudioComponent);
+	}
+	if (AudioComponent) {
+		AudioComponent->Stop();
+	}
+}
+void UShooterAbility::ServerStopAudioComponent_Implementation(UAudioComponent* AudioComponent)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Server Stopping Ability Audio Component");
+	MulticastStopAudioComponent(AudioComponent);
+}
+void UShooterAbility::MulticastStopAudioComponent_Implementation(UAudioComponent* AudioComponent)
+{
+	if (!GetOwner()->HasLocalNetOwner()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Stop Ability Audio Component");
+		if (AudioComponent) {
+			AudioComponent->Stop();
+		}
+	}
+}
+
+void UShooterAbility::PlayParticle(UParticleSystem * FX, FVector Location, FRotator Rotation)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Particle");
+	if (GetOwnerRole() < ROLE_Authority) {
+		ServerPlayParticle(FX, Location, Rotation);
+	}
+	UGameplayStatics::SpawnEmitterAtLocation(this, FX, Location, Rotation);
+}
+
+void UShooterAbility::ServerPlayParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
+{
+	MulticastParticle(FX, Location, Rotation);
+}
+
+void UShooterAbility::MulticastParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Particle");
+	//only on proxies
+	if (!GetOwner()->HasLocalNetOwner()) {
+		UGameplayStatics::SpawnEmitterAtLocation(this, FX, Location, Rotation);
+	}
+}
+
+void UShooterAbility::SetActorVisibility(AActor* Actor, bool bVisible)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Setting Actor Visibility");
+	if (!IsValid(Actor)) {
+		return;
+	}
+	if (GetOwnerRole() < ROLE_Authority) {
+		ServerSetActorVisibility(Actor, bVisible);
+	}
+	Actor->SetActorHiddenInGame(!bVisible);
+	TArray<AActor*> children = Actor->Children;
+	//Actor->GetAllChildActors(children, true);
+	for (AActor* a : children) {
+		a->SetActorHiddenInGame(!bVisible);
+	}
+}
+
+void UShooterAbility::ServerSetActorVisibility_Implementation(AActor* Actor, bool bVisible)
+{
+	MulticastActorVisibility(Actor, bVisible);
+}
+
+void UShooterAbility::MulticastActorVisibility_Implementation(AActor* Actor, bool bVisible)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Actor Visibility");
+	//only on proxies
+	if (!GetOwner()->HasLocalNetOwner()) {
+		//Actor->SetActorHiddenInGame(!bVisible);
+		SetActorVisibility(Actor, bVisible);
 	}
 }
 

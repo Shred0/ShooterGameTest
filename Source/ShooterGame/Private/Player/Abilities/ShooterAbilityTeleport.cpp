@@ -15,6 +15,9 @@ UShooterAbilityTeleport::UShooterAbilityTeleport():Super()
 	AbilityDuration = 0.f;
 	IsEffectActive = false;
 
+	HasPassiveEffect = true;
+	bPassiveReplicate = true;
+
 	//HUD
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	HUDAsset = HUDAssetOb.Object;
@@ -225,11 +228,11 @@ int UShooterAbilityTeleport::Effect()
 			UGameplayStatics::SpawnEmitterAtLocation(SCOwner, TeleportFromParticleFX, CLocation, CRotation);
 
 			AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
-			AbilitySystem->PlaySound(AbilitySoundTeleport, BestLocation);
+			PlaySound(AbilitySoundTeleport, BestLocation);
 			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//UParticleSystem* TeleportParticleFX = TeleportParticleFXOb.Object;
-			AbilitySystem->PlayParticle(TeleportToParticleFX, BestLocation, CRotation);
+			PlayParticle(TeleportToParticleFX, BestLocation, CRotation);
 		}
 	}
 

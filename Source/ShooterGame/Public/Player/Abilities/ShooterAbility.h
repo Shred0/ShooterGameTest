@@ -155,6 +155,9 @@ public:
 	bool PlayTickEffect(float DeltaTime);
 	//stops main ability effect
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Tick")
+	void StartTickEffect();
+	//stops main ability effect
+	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Tick")
 	void StopTickEffect();
 
 	//surrounding ability for the passive ability effect, starts cooldown on effect activation
@@ -162,6 +165,9 @@ public:
 	void PlayPassiveEffect(float DeltaTime);
 	//UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	//void StopPassiveEffect();
+	//proper method to replicate passive effects
+	UFUNCTION(Server, Reliable)
+	void ServerPlayPassiveEffect(float DeltaTime);
 
 protected:
 
@@ -233,6 +239,50 @@ protected:
 	///
 
 	///
+	//FXs
+	///
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Sound")
+	void PlaySound(USoundCue* Sound, FVector Location);
+	UFUNCTION(Server, Reliable)
+	void ServerPlaySound(USoundCue* Sound, FVector Location);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSound(USoundCue* Sound, FVector Location);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Sound")
+	void PlayAudioComponent(UAudioComponent* AudioComponent, float StartTime = 0.f);
+	UFUNCTION(Server, Reliable)
+	void ServerPlayAudioComponent(UAudioComponent* AudioComponent, float StartTime = 0.f);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastAudioComponent(UAudioComponent* AudioComponent, float StartTime = 0.f);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Sound")
+	void StopAudioComponent(UAudioComponent* AudioComponent);
+	UFUNCTION(Server, Reliable)
+	void ServerStopAudioComponent(UAudioComponent* AudioComponent);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStopAudioComponent(UAudioComponent* AudioComponent);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Particle")
+	void PlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
+	UFUNCTION(Server, Reliable)
+	void ServerPlayParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastParticle(UParticleSystem* FX, FVector Location, FRotator Rotation);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilites|FXs|Visibility")
+	void SetActorVisibility(AActor* Actor, bool bVisible);
+	UFUNCTION(Server, Reliable)
+	void ServerSetActorVisibility(AActor* Actor, bool bVisible);
+	//callable only from server
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastActorVisibility(AActor* Actor, bool bVisible);
+
+	///
 	//ability functionality
 	///
 
@@ -257,6 +307,8 @@ protected:
 	//UWorld* World;
 
 private:
+
+	//effects
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual int Effect();
