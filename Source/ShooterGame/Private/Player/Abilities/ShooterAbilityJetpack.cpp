@@ -16,16 +16,16 @@ UShooterAbilityJetpack::UShooterAbilityJetpack():Super()
 	//energy management
 	bUsesEnergy = true;
 	//MaxEnergy = 100.0f;
-	Energy = 100.f;
+	//Energy = 0.f;
 
 	bAutoRefills = true;
-	RefillRateinTime = 27.5f;
-	DrainRateinTime = 27.5f;
+	RefillRateinTime = 15.f;
+	DrainRateinTime = 20.f;
 
 	//HUD
-	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDShooterAbilityJetpack_Icon"));
+	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	HUDAsset = HUDAssetOb.Object;
-	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 0, 0, 90, 90);
+	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 901, 285, 90, 95);
 
 	//sound
 	AbilitySound = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_ShooterAbilityJetpack_LP.SCue_ShooterAbilityJetpack_LP"));
@@ -38,8 +38,8 @@ UShooterAbilityJetpack::UShooterAbilityJetpack():Super()
 	}
 
 	//custom properties
-	JetpackForce = 350000.f; //about
-	JetpackMaxVelocity = 350.f;
+	JetpackForce = 1000000.f; //about
+	JetpackMaxVelocity = 300.f;
 }
 
 void UShooterAbilityJetpack::BeginPlay()
@@ -59,8 +59,6 @@ int UShooterAbilityJetpack::Effect()
 	//Avatar->GetCharacterMovement()->AddForce(FVector(0, 0, 10000));
 	//Avatar->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
 	//Avatar->ClientCheatFly
-
-	if (Avatar->JumpCurrentCount != Avatar->JumpMaxCount) return -1;
 
 	//IsEffectActive = true;
 	StartTickEffect();
