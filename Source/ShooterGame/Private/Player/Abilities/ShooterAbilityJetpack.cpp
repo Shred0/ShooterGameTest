@@ -16,11 +16,11 @@ UShooterAbilityJetpack::UShooterAbilityJetpack():Super()
 	//energy management
 	bUsesEnergy = true;
 	//MaxEnergy = 100.0f;
-	//Energy = 0.f;
+	Energy = 100.f;
 
 	bAutoRefills = true;
-	RefillRateinTime = 10.f;
-	DrainRateinTime = 25.f;
+	RefillRateinTime = 27.5f;
+	DrainRateinTime = 27.5f;
 
 	//HUD
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDShooterAbilityJetpack_Icon"));
@@ -38,8 +38,8 @@ UShooterAbilityJetpack::UShooterAbilityJetpack():Super()
 	}
 
 	//custom properties
-	JetpackForce = 1000000.f; //about
-	JetpackMaxVelocity = 300.f;
+	JetpackForce = 350000.f; //about
+	JetpackMaxVelocity = 350.f;
 }
 
 void UShooterAbilityJetpack::BeginPlay()
@@ -59,6 +59,8 @@ int UShooterAbilityJetpack::Effect()
 	//Avatar->GetCharacterMovement()->AddForce(FVector(0, 0, 10000));
 	//Avatar->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
 	//Avatar->ClientCheatFly
+
+	if (Avatar->JumpCurrentCount != Avatar->JumpMaxCount) return -1;
 
 	//IsEffectActive = true;
 	StartTickEffect();
