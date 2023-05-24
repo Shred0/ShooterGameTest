@@ -17,13 +17,17 @@ FTimeMovementTrace::~FTimeMovementTrace()
 {
 }
 
-UShooterAbilityRewindTime::UShooterAbilityRewindTime()//:Super()
+UShooterAbilityRewindTime::UShooterAbilityRewindTime():Super()
 {
 	///defaults
 	//AbilitySystem = nullptr;
 	AbilityID = EShooterAbilityID::ShooterAbilityRewindTime;
 	AbilityName = FName(TEXT("Rewind Time"));
 	AbilityCooldown = 5.f;
+
+	//tick effect
+	HasTickEffect = true;
+	bTickReplicate = false;
 
 	//passive management
 	HasPassiveEffect = true;
@@ -57,7 +61,7 @@ int UShooterAbilityRewindTime::Effect()
 		return -1;
 	}
 
-	FTimerManager* TimerManager = &World->GetTimerManager();
+	FTimerManager* TimerManager = &GetWorld()->GetTimerManager();
 	if (!TimerManager) {
 		return -1;
 	}
@@ -97,16 +101,17 @@ int UShooterAbilityRewindTime::Effect()
 	//avatar FXs
 	Avatar->DisableInput(Cast<APlayerController>(Avatar->GetController()));
 	//Avatar->GetMesh()->SetVisibility(false, true);
-	AbilitySystem->SetActorVisibility(Avatar, false);
+	SetActorVisibility(Avatar, false);
 
 	//FXs
-	AbilitySystem->PlaySound(AbilitySound, Avatar->GetActorLocation());
+	PlaySound(AbilitySound, Avatar->GetActorLocation());
 
 	UParticleSystem* RewindTimeFromParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Muzzle/P_Launcher_MF.P_Launcher_MF"));
-	AbilitySystem->PlayParticle(RewindTimeFromParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
+	PlayParticle(RewindTimeFromParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
 
 	//rewinding!
-	TimerManager->SetTimer(RewindTimeTimer, [&]() {this->RewindTime(this);}, 0.0035f, true);
+	//TimerManager->SetTimer(RewindTimeTimer, [&]() {this->RewindTime(this);}, 0.0035f, true);
+	StartTickEffect();
 
 	/*GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("X:%f Y:%f Z:%f"),
 		MovementTrace.Last().Location.X, MovementTrace.Last().Location.Y, MovementTrace.Last().Location.Z));*/
@@ -121,6 +126,68 @@ int UShooterAbilityRewindTime::Effect()
 	return 0;
 }
 
+int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
+{
+	/*if (GetWorld()->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Server");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Client");
+	}*/
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));
+	if (MovementTrace.Num() > 0) {
+		AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
+		UPawnMovementComponent* MovementComponent = Avatar->GetMovementComponent();
+		FTimeMovementTrace Trace = MovementTrace.GetTail()->GetValue();
+		//FVector ActorLocation = Avatar->GetActorLocation();
+
+		/*float valX = ActorLocation.X - Trace.Location.X;
+		float valY = ActorLocation.Y - Trace.Location.Y;
+		float valZ = ActorLocation.Z - Trace.Location.Z;
+		//FVector val = ActorLocation - ability->MovementTrace.Last().Location;
+		Avatar->AddMovementInput(FVector::XAxisVector, valX, true);
+		Avatar->AddMovementInput(FVector::YAxisVector, valY, true);
+		Avatar->AddMovementInput(FVector::ZAxisVector, valZ, true);*/
+
+		/*FRepMovement Movement = FRepMovement();
+		Movement.Location = Trace.Location;
+		Movement.Rotation = Trace.Rotation;
+		Avatar->GetPawnPhysicsVolume()->SetReplicatedMovement(Movement);*/
+
+		/*FVector Direction = Trace.Location - Avatar->GetActorLocation();
+		Avatar->AddMovementInput(Direction, (Avatar->GetActorLocation() - Trace.Location).Size(), true);*/
+
+		/*FHitResult HitResult;
+		MovementComponent->SafeMoveUpdatedComponent(Trace.Location, Trace.Rotation, true, HitResult, ETeleportType::ResetPhysics);*/
+
+		Avatar->TeleportTo(Trace.Location, Trace.Rotation);
+		Avatar->GetController()->ClientSetRotation(Trace.Rotation, true);
+
+		MovementTrace.RemoveNode(MovementTrace.GetTail());
+	}
+
+	//exit condition do while-like
+	if (MovementTrace.Num() == 0) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Reset timer");
+		//ability->GetWorld()->GetTimerManager().ClearTimer(ability->RewindTimeTimer);
+		StopTickEffect();
+
+		AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
+
+		//Avatar->GetMesh()->SetVisibility(true, true);
+		SetActorVisibility(Avatar, true);
+
+		UParticleSystem* RewindTimeToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
+		PlayParticle(RewindTimeToParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
+
+		Avatar->EnableInput(Cast<APlayerController>(Avatar->GetController()));
+
+		IsRewindingTime = false;
+	}
+
+	return 0;
+}
+
 bool UShooterAbilityRewindTime::PassiveEffectCondition()
 {
 	return (!GetIsPlaying() || !IsRewindingTime);
@@ -129,6 +196,9 @@ bool UShooterAbilityRewindTime::PassiveEffectCondition()
 void UShooterAbilityRewindTime::PassiveEffect(float DeltaTime)
 {
 	//memorizing movements in a range from now to <TimeToRewind> seconds ago
+	UShooterAbilitySystem* AS = GetAbilitySystem();
+	if (!IsValid(AS)) return;
+
 	AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
 	if (Avatar) {
 		//adding timestamp with location to trace record
@@ -191,15 +261,15 @@ void UShooterAbilityRewindTime::RewindTime(UShooterAbilityRewindTime* ability)
 	//exit condition do while-like
 	if (ability->MovementTrace.Num() == 0) {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Reset timer");
-		ability->World->GetTimerManager().ClearTimer(ability->RewindTimeTimer);
+		ability->GetWorld()->GetTimerManager().ClearTimer(ability->RewindTimeTimer);
 
 		AShooterCharacter* Avatar = ability->GetAbilitySystem()->GetShooterAvatar();
 
 		//Avatar->GetMesh()->SetVisibility(true, true);
-		ability->GetAbilitySystem()->SetActorVisibility(Avatar, true);
+		ability->SetActorVisibility(Avatar, true);
 
 		UParticleSystem* RewindTimeToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
-		ability->GetAbilitySystem()->PlayParticle(RewindTimeToParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
+		ability->PlayParticle(RewindTimeToParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
 
 		Avatar->EnableInput(Cast<APlayerController>(Avatar->GetController()));
 
