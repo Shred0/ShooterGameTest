@@ -320,7 +320,7 @@ bool UShooterAbility::PlayEffect()
 
 	bool successfullyPlayed = (result == 0) ? true : false;
 
-	if (successfullyPlayed && AbilityCooldown > 0) {
+	if (successfullyPlayed && AbilityCooldown > 0 && !HasTickEffect) {
 		CooldownStart();
 	}
 
@@ -356,10 +356,9 @@ bool UShooterAbility::PlayTickEffect(float DeltaTime)
 	int result = -1;
 
 	//if is not in cooldown and can drain energy
+	//if (IsInCooldown) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "IsInCooldown");
 	if (HasTickEffect && IsEffectActive && !IsInCooldown && (XOR(!UsesEnergy(), DrainRateinTime <= Energy))) {
-		//IsPlaying = true;
 		result = TickEffect(DeltaTime);
-		//IsPlaying = false;
 	}
 
 	bool successfullyPlayed = (result == 0) ? true : false;
@@ -395,6 +394,10 @@ void UShooterAbility::StopTickEffect()
 		}
 
 		IsEffectActive = false;
+
+		if (HasTickEffect && AbilityCooldown > 0) {
+			CooldownStart();
+		}
 	}
 }
 
