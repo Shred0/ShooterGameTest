@@ -63,6 +63,7 @@ private:
 
 	//UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual int Effect() override;
+	virtual int TickEffect(float DeltaTime) override;
 
 	virtual bool PassiveEffectCondition() override;
 	virtual void PassiveEffect(float DeltaTime) override;
