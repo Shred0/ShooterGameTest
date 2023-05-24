@@ -134,7 +134,7 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 	else {
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Client");
 	}*/
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));
 	if (MovementTrace.Num() > 0) {
 		AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
 		UPawnMovementComponent* MovementComponent = Avatar->GetMovementComponent();
