@@ -324,6 +324,8 @@ bool UShooterAbility::PlayEffect()
 		CooldownStart();
 	}
 
+	if (!successfullyPlayed) IsPlaying = false;
+
 	return successfullyPlayed;
 }
 
@@ -345,12 +347,12 @@ void UShooterAbility::StopEffect()
 
 bool UShooterAbility::PlayTickEffect(float DeltaTime)
 {
-	if (GetWorld()->IsServer()) {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Tick Ability in Server");
+	/*if (GetWorld()->IsServer()) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Tick Ability in Server");
 	}
 	else {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Tick Ability in Client");
-	}
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Playing Tick Ability in Client");
+	}*/
 
 	//generic error case
 	int result = -1;
