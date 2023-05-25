@@ -177,6 +177,7 @@ enum class EShooterAbilityID : uint8
 	ShooterAbility UMETA(DisplayName = "ShooterAbility"),
 	ShooterAbilityTeleport UMETA(DisplayName = "ShooterAbilityTeleport"),
 	ShooterAbilityRewindTime UMETA(DisplayName = "ShooterAbilityRewindTime"),
+	ShooterAbilityWallRun UMETA(DisplayName = "ShooterAbilityWallRun"),
 	Cancel UMETA(DisplayName = "Cancel")
 };
 //ENUM_RANGE_BY_FIRST_AND_LAST(EShooterAbilityID, EShooterAbilityID::Confirm, EShooterAbilityID::Cancel);
