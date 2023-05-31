@@ -20,6 +20,13 @@ public:
 	
 protected:
 
+	float MaxWallDistance;
+
+	bool bWasAttatchedRight;
+	bool bWasAttatchedLeft;
+	FVector PrevEndPoint;
+	FVector PrevDirection;
+
 private:
 
 	virtual int Effect() override;
