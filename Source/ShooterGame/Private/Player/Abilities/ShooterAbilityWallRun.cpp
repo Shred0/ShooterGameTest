@@ -32,9 +32,9 @@ UShooterAbilityWallRun::UShooterAbilityWallRun():Super()
 	PassiveAbilityCooldown = 0.f;*/
 
 	//HUD
-	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
+	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDShooterAbilityWallRun_Icon"));
 	HUDAsset = HUDAssetOb.Object;
-	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 901, 285, 90, 95);
+	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 0, 0, 90, 90);
 
 	//custom properties
 	MaxWallDistance = 0;
