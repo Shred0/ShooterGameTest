@@ -28,8 +28,11 @@ UShooterAbility::UShooterAbility()
 	IsInCooldown = false;
 	AbilityCooldown = 0.f;
 	IsPlaying = false;
-	AbilityDuration = 0.f;
 	IsEffectActive = false;
+
+	//duration
+	bHasDuration = true;
+	AbilityDuration = 0.f;
 
 	//tick effect
 	HasTickEffect = false;
@@ -88,6 +91,8 @@ void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			UseEnergy(energy);
 			//stop ability when energy reaches zero
 			if (GetEnergy() == 0) {
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Energy Depleted");
+				StopTickEffect();
 				StopEffect();
 			}
 		}
@@ -103,9 +108,23 @@ void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 
 	//tick effect management
-	if (HasTickEffect && IsEffectActive) {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability should tick");
-		PlayTickEffect(DeltaTime);
+	if (HasTickEffect) {
+		if (IsEffectActive && (bHasDuration && AbilityTimeLeft > 0.f)) {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability should tick");
+			PlayTickEffect(DeltaTime);
+		}
+	}
+	
+	//duration management
+	if (HasDuration() && GetIsPlaying()) {
+		AbilityTimeLeft -= DeltaTime;
+		if (GetWorld()->IsClient()) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Purple, FString::Printf(TEXT("Ability Time Left: %f"), AbilityTimeLeft));
+		//stop effect if ability duration depletes
+		if (AbilityTimeLeft <= 0.f) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability Duration Depleted");
+			StopTickEffect();
+			StopEffect();
+		}
 	}
 }
 
@@ -200,6 +219,11 @@ FTimerHandle UShooterAbility::GetPassiveCooldownTimer()
 bool UShooterAbility::GetIsPlaying()
 {
 	return IsPlaying;
+}
+
+bool UShooterAbility::HasDuration()
+{
+	return bHasDuration;
 }
 
 float UShooterAbility::GetDuration()
@@ -316,6 +340,7 @@ bool UShooterAbility::PlayEffect()
 		IsPlaying = true;
 		result = Effect();
 		//IsPlaying = false;
+		AbilityTimeLeft = AbilityDuration;
 	}
 
 	bool successfullyPlayed = (result == 0) ? true : false;

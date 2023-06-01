@@ -9,11 +9,7 @@ UShooterAbilityTeleport::UShooterAbilityTeleport():Super()
 	//AbilitySystem = nullptr;
 	AbilityID = EShooterAbilityID::ShooterAbilityTeleport;
 	AbilityName = FName(TEXT("Teleport"));
-	IsInCooldown = false;
 	AbilityCooldown = 1.5f;
-	IsPlaying = false;
-	AbilityDuration = 0.f;
-	IsEffectActive = false;
 
 	HasPassiveEffect = true;
 	bPassiveReplicate = true;

@@ -69,6 +69,9 @@ public:
 	bool GetIsPlaying();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Duration")
+	bool HasDuration();
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Duration")
 	float GetDuration();
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
@@ -214,7 +217,13 @@ protected:
 	bool IsPlaying = false;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Duration")
+	bool bHasDuration = false;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Duration")
 	float AbilityDuration = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Duration")
+	float AbilityTimeLeft;
 
 	//ability effect
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Ability|Effect")
