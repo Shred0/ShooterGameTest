@@ -109,7 +109,7 @@ void UShooterAbility::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 	//tick effect management
 	if (HasTickEffect) {
-		if (IsEffectActive && (bHasDuration && AbilityTimeLeft > 0.f)) {
+		if (IsEffectActive && (!bHasDuration || (bHasDuration && AbilityTimeLeft > 0.f))) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Ability should tick");
 			PlayTickEffect(DeltaTime);
 		}
