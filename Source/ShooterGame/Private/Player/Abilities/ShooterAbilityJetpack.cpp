@@ -16,7 +16,7 @@ UShooterAbilityJetpack::UShooterAbilityJetpack():Super()
 	//energy management
 	bUsesEnergy = true;
 	//MaxEnergy = 100.0f;
-	Energy = 100.f;
+	Energy = MaxEnergy;
 
 	bAutoRefills = true;
 	RefillRateinTime = 27.5f;
@@ -96,7 +96,7 @@ int UShooterAbilityJetpack::Effect()
 
 int UShooterAbilityJetpack::TickEffect(float DeltaTime)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Ability is Ticking");
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Purple, "Jetpack Ability is Ticking");
 	AShooterCharacter* Avatar = AbilitySystem->GetShooterAvatar();
 	//Avatar->AddMovementInput(FVector::UpVector, 1.f, true);
 	//Avatar->GetCharacterMovement()->AddForce(FVector(0, 0, 10000));
