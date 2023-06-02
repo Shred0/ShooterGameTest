@@ -110,6 +110,8 @@ int UShooterAbilityRewindTime::Effect()
 	PlayParticle(RewindTimeFromParticleFX, Avatar->GetActorLocation(), Avatar->GetActorRotation());
 
 	//rewinding!
+	TimeRewinded = 0.f;
+	TimeStartRewind = FDateTime::UtcNow();
 	//TimerManager->SetTimer(RewindTimeTimer, [&]() {this->RewindTime(this);}, 0.0035f, true);
 	StartTickEffect();
 
@@ -136,9 +138,31 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 	}*/
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));
 	if (MovementTrace.Num() > 0) {
+
+		TimeRewinded += DeltaTime * RewindTimeSpeedMultiplier;
+
 		AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
-		UPawnMovementComponent* MovementComponent = Avatar->GetMovementComponent();
-		FTimeMovementTrace Trace = MovementTrace.GetTail()->GetValue();
+		//UPawnMovementComponent* MovementComponent = Avatar->GetMovementComponent();
+		FTimeMovementTrace Trace; //= MovementTrace.GetTail()->GetValue();
+		FDateTime TimeFromRewind = (TimeStartRewind - FTimespan(TimeRewinded * ETimespan::TicksPerSecond));
+
+		//finding the trace interpolation petween two traces wich the target time is between
+		do {
+			Trace = MovementTrace.GetTail()->GetValue();
+			MovementTrace.RemoveNode(Trace);
+		} while (
+			(Trace.Time == TimeFromRewind ||
+			 Trace.Time > TimeFromRewind) &&
+			MovementTrace.Num() > 0
+		);
+		//if im out of traces, previous trace is equal to trace
+		FTimeMovementTrace PrevTrace = (MovementTrace.Num() > 0) ? MovementTrace.GetTail()->GetValue() : Trace;
+
+		//interpolation
+		float Delta = (TimeRewinded - (TimeStartRewind - Trace.Time).GetTotalSeconds()) / (PrevTrace.Time - Trace.Time).GetTotalSeconds();
+		FVector InterpoledLocation = FMath::VInterpTo(Trace.Location, PrevTrace.Location, Delta, 1.f);
+		FRotator InterpoledRotation = FMath::RInterpTo(Trace.Rotation, PrevTrace.Rotation, Delta, 1.f);
+
 		//FVector ActorLocation = Avatar->GetActorLocation();
 
 		/*float valX = ActorLocation.X - Trace.Location.X;
@@ -160,10 +184,13 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 		/*FHitResult HitResult;
 		MovementComponent->SafeMoveUpdatedComponent(Trace.Location, Trace.Rotation, true, HitResult, ETeleportType::ResetPhysics);*/
 
-		Avatar->TeleportTo(Trace.Location, Trace.Rotation);
-		Avatar->GetController()->ClientSetRotation(Trace.Rotation, true);
+		/*Avatar->TeleportTo(Trace.Location, Trace.Rotation);
+		Avatar->GetController()->ClientSetRotation(Trace.Rotation, true);*/
+		Avatar->TeleportTo(InterpoledLocation, InterpoledRotation);
+		Avatar->GetController()->ClientSetRotation(InterpoledRotation, true);
 
-		MovementTrace.RemoveNode(MovementTrace.GetTail());
+		//MovementTrace.RemoveNode(MovementTrace.GetTail());
+		//MovementTrace.RemoveNode(Trace);
 	}
 
 	//exit condition do while-like

@@ -28,7 +28,14 @@ public:
 
 	//FVector LinearVelocity;
 	//FVector AngularVelocity;
+
+	FORCEINLINE bool operator== (FTimeMovementTrace x);
 };
+
+FORCEINLINE bool FTimeMovementTrace::operator==(FTimeMovementTrace x)
+{
+	return Time == x.Time && Location == x.Location && Rotation == x.Rotation;
+}
 
 /**
  * 
@@ -58,6 +65,10 @@ protected:
 	USoundCue* AbilitySound;
 
 	bool IsRewindingTime;
+
+	FDateTime TimeStartRewind;
+	float TimeRewinded; //same format as delta time (seconds)
+	float RewindTimeSpeedMultiplier = 6.f;
 
 private:
 
