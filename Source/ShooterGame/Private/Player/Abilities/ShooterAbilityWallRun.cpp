@@ -12,18 +12,22 @@ UShooterAbilityWallRun::UShooterAbilityWallRun():Super()
 	//AbilityCooldown = 0.f;
 	//AbilityDuration = 0.f;
 
+	//duration
+	bHasDuration = true;
+	AbilityDuration = 3.f;
+
 	//tick effect
 	HasTickEffect = true;
 	bTickReplicate = true;
 
 	//energy management
-	bUsesEnergy = true;
+	/*bUsesEnergy = true;
 	MaxEnergy = 100.0f;
 	Energy = 100.f;
 
 	bAutoRefills = true;
 	RefillRateinTime = 50.f;
-	DrainRateinTime = 10.f;
+	DrainRateinTime = 10.f;*/
 
 	//passive management
 	/*HasPassiveEffect = false;
