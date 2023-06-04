@@ -24,6 +24,8 @@ int UShooterAbilityWallJump::Effect()
 {
 	AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
 
+	if (!MaxWallDistance) MaxWallDistance = Avatar->GetCapsuleComponent()->GetScaledCapsuleRadius() + 30.f;
+
 	//i can only jump on walls in mid-air
 	if (!Avatar->GetMovementComponent()->IsFalling()) {
 		StopEffect();
@@ -59,16 +61,54 @@ int UShooterAbilityWallJump::Effect()
 		}
 	}
 
-	//jump from wall right to me
+	//jump from wall right to avatar
 	if (HitRightRes.bBlockingHit) {
 		DrawDebugLine(GetWorld(), Avatar->GetActorLocation(), rightCheckEnd, FColor::Red, false, 40.f, 0, 2.5f);
-		FVector newForwardDirection = HitRightRes.Normal;
-		FVector newAvatarVelocity = HitRightRes.Normal;
+		FRotator DirectionT;
+		FVector newAvatarVelocity;
+
+		//newAvatarVelocity += HitRightRes.Normal;
+
+		DirectionT = HitRightRes.Normal.Rotation();
+		DirectionT.Yaw += 75;
+		DirectionT.Pitch += 45;
+		newAvatarVelocity = DirectionT.Vector();
+		//newAvatarVelocity.Normalize();
+
+		/*DirectionT = HitRightRes.Normal.Rotation();
+		DirectionT.Pitch += 90;
+		newAvatarVelocity += DirectionT.Vector();
+		newAvatarVelocity.Normalize();*/
+
+		newAvatarVelocity *= Avatar->GetCharacterMovement()->GetMaxSpeed();
+		DrawDebugDirectionalArrow(GetWorld(), Avatar->GetActorLocation(), newAvatarVelocity + Avatar->GetActorLocation(), 8.f, FColor::Purple, false, 15.f, 0, 4.f);
+
+		Avatar->LaunchCharacter(newAvatarVelocity, true, true);
 	}
 
-	//jump from wall left to me
+	//jump from wall left to avatar
 	if (HitLeftRes.bBlockingHit) {
 		DrawDebugLine(GetWorld(), Avatar->GetActorLocation(), leftCheckEnd, FColor::Red, false, 40.f, 0, 2.5f);
+		FRotator DirectionT;
+		FVector newAvatarVelocity;
+
+		//newAvatarVelocity += HitLeftRes.Normal;
+
+		DirectionT = HitLeftRes.Normal.Rotation();
+		DirectionT.Yaw -= 75;
+		DirectionT.Pitch += 45;
+		newAvatarVelocity = DirectionT.Vector();
+		//newAvatarVelocity.Normalize();
+
+		/*DirectionT = HitLeftRes.Normal.Rotation();
+		DirectionT.Pitch += 90;
+		newAvatarVelocity += DirectionT.Vector();
+		newAvatarVelocity.Normalize();*/
+
+		newAvatarVelocity *= Avatar->GetCharacterMovement()->GetMaxSpeed();
+		DrawDebugDirectionalArrow(GetWorld(), Avatar->GetActorLocation(), newAvatarVelocity + Avatar->GetActorLocation(), 8.f, FColor::Purple, false, 15.f, 0, 4.f);
+
+		Avatar->LaunchCharacter(newAvatarVelocity, true, true);
 	}
 
 	StopEffect();
