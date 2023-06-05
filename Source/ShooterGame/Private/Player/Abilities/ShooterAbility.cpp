@@ -13,13 +13,13 @@ UShooterAbility::UShooterAbility()
 	bTickReplicate = true;
 	//bRegistered = true;
 	SetIsReplicated(true);
-	RegisterComponent();
 	PrimaryComponentTick.Target = this;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bAllowTickOnDedicatedServer = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.SetTickFunctionEnable(true);
 	SetComponentTickEnabled(true);
+	//RegisterComponent();
 	//PrimaryComponentTick.RegisterTickFunction(GetComponentLevel());
 
 	//all defaults
@@ -143,7 +143,7 @@ UShooterAbility* UShooterAbility::MakeFor(UShooterAbilitySystem* SAS, EShooterAb
 		if (abilityClass) {
 			abilityReference = NewObject<UShooterAbility>(SAS, abilityClass);
 			//abilityReference->SetIsReplicated(true);
-			//abilityReference->RegisterComponent();
+			abilityReference->RegisterComponent();
 			//abilityReference->PrimaryComponentTick.bCanEverTick = true;
 			abilityReference->AbilitySystem = SAS;
 			//abilityReference->World = SAS->World;
