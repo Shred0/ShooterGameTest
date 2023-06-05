@@ -1098,9 +1098,9 @@ void AShooterCharacter::Teleport()
 					if (Result.bBlockingHit) {
 						DistanceToResult = (Result.Location - TargetLocation).Size();
 
-						///se distanza è 0 memorizzo elemento colpito
+						///se distanza ï¿½ 0 memorizzo elemento colpito
 
-						///prendo in considerazione punto più distante impattato con elemento colpito
+						///prendo in considerazione punto piï¿½ distante impattato con elemento colpito
 
 						if (DistanceToResult > 0 && DistanceToResult < BestDistance) {
 							UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
@@ -1475,6 +1475,7 @@ void AShooterCharacter::InitializeAbilitySystem()
 
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityRewindTime);
+			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityJetpack);
 		}
 	}
 }
