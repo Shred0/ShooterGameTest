@@ -1477,6 +1477,7 @@ void AShooterCharacter::InitializeAbilitySystem()
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityRewindTime);
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityJetpack);
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityWallRun);
+			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityWallJump);
 		}
 	}
 }
