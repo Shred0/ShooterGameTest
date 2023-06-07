@@ -8,6 +8,9 @@
 
 UShooterAbility::UShooterAbility()
 {
+	//the ability must have a working tick component
+	//in order to manage its effects (energy, duration and tick effect)
+
 	//ReplicateSubobjects(,);
 	SetIsReplicatedByDefault(true);
 	bTickReplicate = true;
@@ -367,6 +370,10 @@ void UShooterAbility::StopEffect()
 		AfterEffect();
 
 		IsPlaying = false;
+
+		if (AbilityCooldown > 0 && HasTickEffect) {
+			CooldownStart();
+		}
 	}
 }
 

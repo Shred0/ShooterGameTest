@@ -31,6 +31,7 @@ public:
 	//ability getters
 	///
 
+	//get reference of ability system wich this ability is bound to
 	UFUNCTION(BlueprintCallable, Category = "Ability|AbilitySystem")
 	UShooterAbilitySystem* GetAbilitySystem();
 
@@ -325,11 +326,11 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Tick")
 	virtual int TickEffect(float DeltaTime);
 
+	//called after stopping Effect
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect")
 	virtual void AfterEffect();
 
 	//function that returns true if the conditions to play the ability's passive effect are met
-	//cooldown not included
 	//needs to be overridden from child classes in order to be effective
 	UFUNCTION(BlueprintCallable, Category = "Ability|Effect|Passive")
 	virtual bool PassiveEffectCondition();

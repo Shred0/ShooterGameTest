@@ -137,13 +137,20 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Client");
 	}*/
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));
+
+	//if i have movement traces left, i need to pass through them in order to rewind time
 	if (MovementTrace.Num() > 0) {
 
+		//keeping track of time rewinded based on
+		// how much time has passed since ability activation and
+		// the rewind speed multiplier that determines how fast i rewind time
 		TimeRewinded += DeltaTime * RewindTimeSpeedMultiplier;
 
 		AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
 		//UPawnMovementComponent* MovementComponent = Avatar->GetMovementComponent();
 		FTimeMovementTrace Trace; //= MovementTrace.GetTail()->GetValue();
+
+		//how much time has passed since ability activation (same as TimeRewinded but in FDateTime)
 		FDateTime TimeFromRewind = (TimeStartRewind - FTimespan(TimeRewinded * ETimespan::TicksPerSecond));
 
 		//finding the trace interpolation petween two traces wich the target time is between
@@ -193,7 +200,8 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 		//MovementTrace.RemoveNode(Trace);
 	}
 
-	//exit condition do while-like
+	//exit condition do while-like:
+	//if i'm out of traces, i have to stop the ability
 	if (MovementTrace.Num() == 0) {
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Reset timer");
 		//ability->GetWorld()->GetTimerManager().ClearTimer(ability->RewindTimeTimer);
@@ -251,6 +259,7 @@ void UShooterAbilityRewindTime::PassiveEffect(float DeltaTime)
 	}
 }
 
+//OLD METHOT; DEPRECATED
 void UShooterAbilityRewindTime::RewindTime(UShooterAbilityRewindTime* ability)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));

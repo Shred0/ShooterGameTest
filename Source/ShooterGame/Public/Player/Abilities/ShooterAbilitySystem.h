@@ -36,7 +36,7 @@ public:
 
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
-	//used to manage passive effects and energy
+	//used to manage passive effects, energy and timed abilities
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const;
@@ -44,10 +44,10 @@ public:
 	bool bInstanced = false;
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Owner")
-	AActor* GetActorOwner();
+	AActor* GetActorOwner(); //player state
 
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Avatar")
-	AShooterCharacter* GetShooterAvatar();
+	AShooterCharacter* GetShooterAvatar(); //player's actor
 
 	//method to add abilities
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
@@ -63,18 +63,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Abilites|Manage")
 	void StopAbility(EShooterAbilityID ID);
 
+	//returns the ID of each defined ability
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	TArray<EShooterAbilityID> GetAllAbilityIDs();
+	//returns the UClass of each defined ability
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	TArray<class UClass*> GetAllAbilityClasses();
 
+	//returns the ID of each instanced ability in this ability system
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	TArray<EShooterAbilityID> GetEquippedAbilityIDs();
+	//returns the reference of each instanced ability in this ability system
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	TArray<class UShooterAbility*> GetEquippedAbilities();
 
+	//returns true if the passed ID coresponds to an instanced ability
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	bool IsAbilityEquipped(EShooterAbilityID ID);
+	//returns true if the ability system can instance the ability that coresponds to the passed ID
 	UFUNCTION(BlueprintCallable, Category = "Abilites|List")
 	bool IsAbilityValid(EShooterAbilityID ID);
 
@@ -140,6 +146,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|Avatar")
 	AShooterCharacter* ShooterAvatar;
 
+	//true when this ability system is bound to a player state and an avatar
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Abilities|Bindings")
 	bool IsBound = false;
 

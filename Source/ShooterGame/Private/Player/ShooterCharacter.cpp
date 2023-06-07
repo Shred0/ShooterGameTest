@@ -1473,6 +1473,7 @@ void AShooterCharacter::InitializeAbilitySystem()
 			AbilitySystem->SetKeyBindings(InputComponent);
 			AbilitySystem->bInstanced = true;
 
+			//adding abilities to player character
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityTeleport);
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityRewindTime);
 			AbilitySystem->AddAbility(EShooterAbilityID::ShooterAbilityJetpack);

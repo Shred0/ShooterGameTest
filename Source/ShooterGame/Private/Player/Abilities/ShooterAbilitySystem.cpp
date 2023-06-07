@@ -109,7 +109,8 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 
 	IsBound = false;
 
-	//adding class references for all abilities based off IDs' names
+	//adding class references for all abilities based off IDs' names in a map of classes (AbilityClassMap)
+	//paired with the coresponding EShooterAbilityID
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt) {
 		UClass* ClassAbility = *ClassIt;
 		//ClassAbility->GetClass();
@@ -136,7 +137,7 @@ void UShooterAbilitySystem::SetFor(AActor* PlayerState, AShooterCharacter* Avata
 			//UE_LOG(LogTemp, Warning, TEXT("Class ID: %s"), ""+index);
 			//for (EShooterAbilityID AbilityID : TEnumRange<EShooterAbilityID>()){
 
-			//if class name coresponds to an ID name, makes and equips the related ability
+			//if class name coresponds to an ID name, instances and equips the related ability
 			for (int32 idx = 0; idx < enumID->NumEnums(); ++idx) {
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Checking Ability class " + enumID->GetDisplayNameTextByIndex((uint8)idx).ToString());
 				if (enumID->GetDisplayNameTextByIndex((uint8)idx).ToString().Equals(ClassAbility->GetName())) {
@@ -166,12 +167,14 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 	if (GetOwnerRole() < ROLE_Authority) {
 		//ServerAddAbility(ID);
 	}
-	//creating a reference to the ability i want to use
+	//creating a reference to the ability i want to equip based off the class that coresponds to the given ID
+	//found in AbilityClassMap
 	bool equipped = false;
 	UEnum* enumID = FindObject<UEnum>(ANY_PACKAGE, TEXT("EShooterAbilityID"), true);
 	if (enumID) {
 		FString wrn = "Validating Ability with ID " + enumID->GetDisplayNameTextByIndex((uint8)ID).ToString();
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, wrn);
+		//if ID is paired to an ability class in AbilityClassMap
 		if (IsAbilityValid(ID)) {
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "ID is valid");
 			UE_LOG(LogTemp, Warning, TEXT("adding ability with id: %s"), *enumID->GetDisplayNameTextByIndex((uint8)ID).ToString());
@@ -192,6 +195,7 @@ bool UShooterAbilitySystem::AddAbility(EShooterAbilityID ID)
 				abilityReference = UShooterAbility::MakeFor(this, ID);
 			}
 
+			//if ability is created, i add it to a map that pairs the given ID to the new ability
 			if (abilityReference) {
 				equipped = true;
 				UE_LOG(LogTemp, Log, TEXT("ability instantiated"));
