@@ -11,13 +11,14 @@ UShooterAbilityTeleport::UShooterAbilityTeleport():Super()
 	AbilityName = FName(TEXT("Teleport"));
 	AbilityCooldown = 1.5f;
 
-	HasPassiveEffect = true;
-	bPassiveReplicate = true;
-
 	//HUD
 	static ConstructorHelpers::FObjectFinder<UTexture2D> HUDAssetOb(TEXT("/Game/UI/HUD/HUDAddedAsset"));
 	HUDAsset = HUDAssetOb.Object;
 	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 901, 285, 90, 95);
+
+	//sound
+	static ConstructorHelpers::FObjectFinder<USoundCue> AbilitySoundOb(TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport"));
+	AbilitySoundTeleport = AbilitySoundOb.Object;
 
 	//custom properties
 	TeleportDistance = 1000.f; //about 10 meters
@@ -223,7 +224,7 @@ int UShooterAbilityTeleport::Effect()
 			UParticleSystem* TeleportFromParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Muzzle/P_Launcher_MF.P_Launcher_MF"));
 			UGameplayStatics::SpawnEmitterAtLocation(SCOwner, TeleportFromParticleFX, CLocation, CRotation);
 
-			AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
+			//AbilitySoundTeleport = LoadObject<USoundCue>(nullptr, TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
 			PlaySound(AbilitySoundTeleport, BestLocation);
 			UParticleSystem* TeleportToParticleFX = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
 			//static ConstructorHelpers::FObjectFinder<UParticleSystem> TeleportParticleFXOb(TEXT("/Game/Effects/ParticleSystems/Weapons/RocketLauncher/Impact/P_Launcher_IH.P_Launcher_IH"));
