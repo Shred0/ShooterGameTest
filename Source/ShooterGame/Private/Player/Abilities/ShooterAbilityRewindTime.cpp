@@ -137,6 +137,7 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, "Tick Ability in Client");
 	}*/
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Rewinding!")));
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Purple, FString::Printf(TEXT("Rewinding Time")));
 
 	//if i have movement traces left, i need to pass through them in order to rewind time
 	if (MovementTrace.Num() > 0) {
@@ -206,6 +207,7 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Reset timer");
 		//ability->GetWorld()->GetTimerManager().ClearTimer(ability->RewindTimeTimer);
 		StopTickEffect();
+		StopEffect();
 
 		AShooterCharacter* Avatar = GetAbilitySystem()->GetShooterAvatar();
 
@@ -232,6 +234,8 @@ bool UShooterAbilityRewindTime::PassiveEffectCondition()
 
 void UShooterAbilityRewindTime::PassiveEffect(float DeltaTime)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Purple, FString::Printf(TEXT("Recording Time")));
+
 	//memorizing movements in a range from now to <TimeToRewind> seconds ago
 	UShooterAbilitySystem* AS = GetAbilitySystem();
 	if (!IsValid(AS)) return;
