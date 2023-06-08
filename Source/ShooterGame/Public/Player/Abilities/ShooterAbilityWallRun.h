@@ -20,8 +20,10 @@ public:
 	
 protected:
 
+	//max distance i from character location where i can detect nearby walls
 	float MaxWallDistance;
 
+	//variables needed to know wich wall i run on and to detect a wall change or a turn
 	bool bWasAttatchedRight;
 	bool bWasAttatchedLeft;
 	FVector PrevEndPoint;

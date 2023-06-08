@@ -41,6 +41,7 @@ UShooterAbilityWallRun::UShooterAbilityWallRun():Super()
 	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 0, 0, 90, 90);
 
 	//custom properties
+	//can't use actor location here as this ability does not have an owner yet
 	MaxWallDistance = 0;
 }
 
@@ -55,6 +56,7 @@ int UShooterAbilityWallRun::Effect()
 	AShooterCharacter* Avatar = AbilitySystem->GetShooterAvatar();
 	if (!IsValid(Avatar)) return -1;
 
+	//enabling plane constraint to make my avatar not fall from the attatchment point
 	Avatar->GetCharacterMovement()->SetPlaneConstraintEnabled(true);
 
 	if (!MaxWallDistance)
@@ -76,12 +78,15 @@ int UShooterAbilityWallRun::TickEffect(float DeltaTime)
 	}
 
 	FCollisionQueryParams CollisionParams;
+	//ignoring myself for collision detection for walls
 	CollisionParams.AddIgnoredActor(Avatar);
 
 	DrawDebugPoint(GetWorld(), Avatar->GetActorLocation(), 8.0f, FColor::Green, false, 40.0f, 0);
 	//i have to stick to a wall from right or left
 	FVector rightCheckEnd = (PrevDirection != FVector::ZeroVector && bWasAttatchedRight) ? 
+		//if i was attatched to a wall i use previous hit direction to follow the wall side
 		(PrevDirection * MaxWallDistance) + Avatar->GetActorLocation() : 
+		//if i'm on a new wall i check both left and right to detect nearby walls 
 		(Avatar->GetActorRightVector() * MaxWallDistance) + Avatar->GetActorLocation();
 	FVector leftCheckEnd = (PrevDirection != FVector::ZeroVector && bWasAttatchedLeft) ?
 		(PrevDirection * MaxWallDistance) + Avatar->GetActorLocation() :
@@ -158,6 +163,7 @@ int UShooterAbilityWallRun::TickEffect(float DeltaTime)
 		Avatar->SetActorRotation(newRotation);*/ //Controller->ClientSetRotation(HitRightRes.Normal.Rotation().Add(0.f, 90.f, 0.f), false); //
 		//Avatar->GetRunningSpeedModifier();
 		FRotator newRotation = ((suggestedDirection != FVector::ZeroVector) ? suggestedDirection : HitRightRes.Normal).Rotation();
+		//runnung on a wall on avatar's right so normal must turn right to face avatar's forward direction
 		newRotation.Yaw += 90;
 		FVector newAvatarVelocity = (newRotation.Vector() + HitRightRes.Normal.Rotation().Vector() * -1) * Avatar->GetCharacterMovement()->GetMaxSpeed();
 		//DrawDebugDirectionalArrow(GetWorld(), Avatar->GetActorLocation(), newAvatarVelocity + Avatar->GetActorLocation(), 5.f, FColor::Purple, false, 25.f, 0, 3.f);
@@ -183,6 +189,7 @@ int UShooterAbilityWallRun::TickEffect(float DeltaTime)
 		Avatar->SetActorRotation(newRotation);*/ //Controller->ClientSetRotation(HitLeftRes.Normal.Rotation().Add(0.f, -90.f, 0.f), false); //
 		//Avatar->GetRunningSpeedModifier();
 		FRotator newRotation = ((suggestedDirection != FVector::ZeroVector) ? suggestedDirection : HitLeftRes.Normal).Rotation();
+		//runnung on a wall on avatar's left so normal must turn left to face avatar's forward direction
 		newRotation.Yaw -= 90;
 		FVector newAvatarVelocity = (newRotation.Vector() + HitLeftRes.Normal.Rotation().Vector() * -1) * (Avatar->GetCharacterMovement()->GetMaxSpeed());
 		//DrawDebugDirectionalArrow(GetWorld(), Avatar->GetActorLocation(), newAvatarVelocity + Avatar->GetActorLocation(), 5.f, FColor::Purple, false, 25.f, 0, 3.f);

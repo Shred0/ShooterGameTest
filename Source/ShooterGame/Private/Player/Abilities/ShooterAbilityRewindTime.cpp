@@ -225,7 +225,9 @@ int UShooterAbilityRewindTime::TickEffect(float DeltaTime)
 
 bool UShooterAbilityRewindTime::PassiveEffectCondition()
 {
-	return (!GetIsPlaying() || !IsRewindingTime);
+	//if im not rewinding time,
+	//i can register time traces
+	return (!GetIsPlaying() && !IsRewindingTime);
 }
 
 void UShooterAbilityRewindTime::PassiveEffect(float DeltaTime)

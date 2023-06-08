@@ -20,6 +20,7 @@ public:
 
 protected:
 
+	//max distance i from character location where i can detect nearby walls
 	float MaxWallDistance;
 
 private:

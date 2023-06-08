@@ -348,9 +348,9 @@ bool UShooterAbility::PlayEffect()
 
 	bool successfullyPlayed = (result == 0) ? true : false;
 
-	if (successfullyPlayed && AbilityCooldown > 0 && !HasTickEffect) {
+	/*if (successfullyPlayed && AbilityCooldown > 0 && !HasTickEffect) {
 		CooldownStart();
-	}
+	}*/
 
 	if (!successfullyPlayed) IsPlaying = false;
 
@@ -371,7 +371,7 @@ void UShooterAbility::StopEffect()
 
 		IsPlaying = false;
 
-		if (AbilityCooldown > 0 && HasTickEffect) {
+		if (AbilityCooldown > 0 /*&& HasTickEffect*/) {
 			CooldownStart();
 		}
 	}

@@ -17,6 +17,7 @@ UShooterAbilityWallJump::UShooterAbilityWallJump() :Super()
 	AbilityIcon = UCanvas::MakeIcon(HUDAsset, 0, 0, 90, 90);
 
 	//custom properties
+	//can't use actor location here as this ability does not have an owner yet
 	MaxWallDistance = 0.f;
 }
 
@@ -70,6 +71,7 @@ int UShooterAbilityWallJump::Effect()
 		//newAvatarVelocity += HitRightRes.Normal;
 
 		DirectionT = HitRightRes.Normal.Rotation();
+		//jumping from a wall on avatar's right so normal must turn right to face desired direction
 		DirectionT.Yaw += 75;
 		DirectionT.Pitch += 45;
 		newAvatarVelocity = DirectionT.Vector();
@@ -95,6 +97,7 @@ int UShooterAbilityWallJump::Effect()
 		//newAvatarVelocity += HitLeftRes.Normal;
 
 		DirectionT = HitLeftRes.Normal.Rotation();
+		//jumping from a wall on avatar's left so normal must turn left to face desired direction
 		DirectionT.Yaw -= 75;
 		DirectionT.Pitch += 45;
 		newAvatarVelocity = DirectionT.Vector();

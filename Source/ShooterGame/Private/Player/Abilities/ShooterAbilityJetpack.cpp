@@ -60,12 +60,14 @@ int UShooterAbilityJetpack::Effect()
 	//Avatar->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
 	//Avatar->ClientCheatFly
 
+	//i can activate this ability after jumping
 	if (Avatar->JumpCurrentCount != Avatar->JumpMaxCount) return -1;
 
 	//IsEffectActive = true;
 	StartTickEffect();
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("%f"), Avatar->GetCharacterMovement()->AirControl));
 
+	//increased air control in order to move with jetpack
 	PrevAirControl = Avatar->GetCharacterMovement()->AirControl;
 	Avatar->GetCharacterMovement()->AirControl = 1.f;
 
@@ -101,6 +103,7 @@ int UShooterAbilityJetpack::TickEffect(float DeltaTime)
 	//Avatar->AddMovementInput(FVector::UpVector, 1.f, true);
 	//Avatar->GetCharacterMovement()->AddForce(FVector(0, 0, 10000));
 
+	//calculating the acceleration needed to make mu character fly
 	float AvatarMass = Avatar->GetCharacterMovement()->Mass;
 	float Gravity = Avatar->GetCharacterMovement()->GetGravityZ();
 
@@ -131,6 +134,9 @@ int UShooterAbilityJetpack::TickEffect(float DeltaTime)
 		}
 	}
 
+	//adding Z acceleration to character's velocity
+	//acceleration is costant due to this effect being a tick effect,
+	//so i have to multiply acceleration for DeltaTime
 	Avatar->GetMovementComponent()->Velocity.Z += resultingAccel * DeltaTime;
 
 	return 0;
