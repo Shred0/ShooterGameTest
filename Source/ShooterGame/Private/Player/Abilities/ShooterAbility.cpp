@@ -467,8 +467,10 @@ void UShooterAbility::PlaySound(USoundCue* Sound, FVector Location)
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Sound");
 	if (GetOwnerRole() < ROLE_Authority) {
 		//ServerPlaySound(Sound, Location);
-		MulticastSound(Sound, Location);
+		//MulticastSound(Sound, Location);
 	}
+	//i can multicast from here because ability effect is also called from server
+	MulticastSound(Sound, Location);
 	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
 }
 void UShooterAbility::ServerPlaySound_Implementation(USoundCue* Sound, FVector Location)
@@ -490,8 +492,10 @@ void UShooterAbility::PlayAudioComponent(UAudioComponent* AudioComponent, float 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Audio Component");
 	if (GetOwnerRole() < ROLE_Authority) {
 		//ServerPlayAudioComponent(AudioComponent, StartTime);
-		MulticastAudioComponent(AudioComponent, StartTime);
+		//MulticastAudioComponent(AudioComponent, StartTime);
 	}
+	//i can multicast from here because ability effect is also called from server
+	MulticastAudioComponent(AudioComponent, StartTime);
 	if (AudioComponent) {
 		AudioComponent->Play(StartTime);
 	}
@@ -516,8 +520,10 @@ void UShooterAbility::StopAudioComponent(UAudioComponent* AudioComponent)
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Stopping Ability Audio Component");
 	if (GetOwnerRole() < ROLE_Authority) {
 		//ServerStopAudioComponent(AudioComponent);
-		MulticastStopAudioComponent(AudioComponent);
+		//MulticastStopAudioComponent(AudioComponent);
 	}
+	//i can multicast from here because ability effect is also called from server
+	MulticastStopAudioComponent(AudioComponent);
 	if (AudioComponent) {
 		AudioComponent->Stop();
 	}
@@ -541,9 +547,11 @@ void UShooterAbility::PlayParticle(UParticleSystem * FX, FVector Location, FRota
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Particle");
 	if (GetOwnerRole() < ROLE_Authority) {
-		ServerPlayParticle(FX, Location, Rotation);
+		//ServerPlayParticle(FX, Location, Rotation);
 		//MulticastParticle(FX, Location, Rotation);
 	}
+	//i can multicast from here because ability effect is also called from server
+	MulticastParticle(FX, Location, Rotation);
 	UGameplayStatics::SpawnEmitterAtLocation(this, FX, Location, Rotation);
 }
 void UShooterAbility::ServerPlayParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
@@ -567,8 +575,10 @@ void UShooterAbility::SetActorVisibility(AActor* Actor, bool bVisible)
 	}
 	if (GetOwnerRole() < ROLE_Authority) {
 		//ServerSetActorVisibility(Actor, bVisible);
-		MulticastActorVisibility(Actor, bVisible);
+		//MulticastActorVisibility(Actor, bVisible);
 	}
+	//i can multicast from here because ability effect is also called from server
+	MulticastActorVisibility(Actor, bVisible);
 	Actor->SetActorHiddenInGame(!bVisible);
 	TArray<AActor*> children = Actor->Children;
 	//Actor->GetAllChildActors(children, true);
