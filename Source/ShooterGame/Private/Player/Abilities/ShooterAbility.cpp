@@ -466,7 +466,8 @@ void UShooterAbility::PlaySound(USoundCue* Sound, FVector Location)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Sound");
 	if (GetOwnerRole() < ROLE_Authority) {
-		ServerPlaySound(Sound, Location);
+		//ServerPlaySound(Sound, Location);
+		MulticastSound(Sound, Location);
 	}
 	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
 }
@@ -488,7 +489,8 @@ void UShooterAbility::PlayAudioComponent(UAudioComponent* AudioComponent, float 
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Audio Component");
 	if (GetOwnerRole() < ROLE_Authority) {
-		ServerPlayAudioComponent(AudioComponent, StartTime);
+		//ServerPlayAudioComponent(AudioComponent, StartTime);
+		MulticastAudioComponent(AudioComponent, StartTime);
 	}
 	if (AudioComponent) {
 		AudioComponent->Play(StartTime);
@@ -513,7 +515,8 @@ void UShooterAbility::StopAudioComponent(UAudioComponent* AudioComponent)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Stopping Ability Audio Component");
 	if (GetOwnerRole() < ROLE_Authority) {
-		ServerStopAudioComponent(AudioComponent);
+		//ServerStopAudioComponent(AudioComponent);
+		MulticastStopAudioComponent(AudioComponent);
 	}
 	if (AudioComponent) {
 		AudioComponent->Stop();
@@ -539,15 +542,14 @@ void UShooterAbility::PlayParticle(UParticleSystem * FX, FVector Location, FRota
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Playing Ability Particle");
 	if (GetOwnerRole() < ROLE_Authority) {
 		ServerPlayParticle(FX, Location, Rotation);
+		//MulticastParticle(FX, Location, Rotation);
 	}
 	UGameplayStatics::SpawnEmitterAtLocation(this, FX, Location, Rotation);
 }
-
 void UShooterAbility::ServerPlayParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
 {
 	MulticastParticle(FX, Location, Rotation);
 }
-
 void UShooterAbility::MulticastParticle_Implementation(UParticleSystem* FX, FVector Location, FRotator Rotation)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Ability Particle");
@@ -564,7 +566,8 @@ void UShooterAbility::SetActorVisibility(AActor* Actor, bool bVisible)
 		return;
 	}
 	if (GetOwnerRole() < ROLE_Authority) {
-		ServerSetActorVisibility(Actor, bVisible);
+		//ServerSetActorVisibility(Actor, bVisible);
+		MulticastActorVisibility(Actor, bVisible);
 	}
 	Actor->SetActorHiddenInGame(!bVisible);
 	TArray<AActor*> children = Actor->Children;
@@ -573,19 +576,17 @@ void UShooterAbility::SetActorVisibility(AActor* Actor, bool bVisible)
 		a->SetActorHiddenInGame(!bVisible);
 	}
 }
-
 void UShooterAbility::ServerSetActorVisibility_Implementation(AActor* Actor, bool bVisible)
 {
 	MulticastActorVisibility(Actor, bVisible);
 }
-
 void UShooterAbility::MulticastActorVisibility_Implementation(AActor* Actor, bool bVisible)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Multicasting Actor Visibility");
 	//only on proxies
 	if (!GetOwner()->HasLocalNetOwner()) {
-		//Actor->SetActorHiddenInGame(!bVisible);
-		SetActorVisibility(Actor, bVisible);
+		Actor->SetActorHiddenInGame(!bVisible);
+		//SetActorVisibility(Actor, bVisible);
 	}
 }
 
