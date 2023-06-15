@@ -2,6 +2,8 @@
 
 #include "ShooterGame.h"
 #include "ShooterPlayerState.h"
+#include "Player/Abilities/AttributeSets/ShooterAttributeSet.h"
+#include "Player/Abilities/ShooterAbilitySystemComponent.h"
 #include "Net/OnlineEngineInterface.h"
 
 AShooterPlayerState::AShooterPlayerState(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -12,6 +14,16 @@ AShooterPlayerState::AShooterPlayerState(const FObjectInitializer& ObjectInitial
 	NumBulletsFired = 0;
 	NumRocketsFired = 0;
 	bQuitter = false;
+
+	AbilitySystemComponent = CreateDefaultSubobject<UShooterAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+
+	AttributeSet = CreateDefaultSubobject<UShooterAttributeSet>(TEXT("AttributeSet"));
+
+	NetUpdateFrequency = 100.f;
+
+	DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
 }
 
 void AShooterPlayerState::Reset()
@@ -25,6 +37,12 @@ void AShooterPlayerState::Reset()
 	NumBulletsFired = 0;
 	NumRocketsFired = 0;
 	bQuitter = false;
+
+	if (AbilitySystemComponent){
+		HealthChangedDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetTeleportLocationAttribute()).AddUObject(this, &AShooterPlayerState::TeleportLocationChanged);
+
+		AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag(FName("State.Debuff.Stun")), EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AShooterPlayerState::StunTagChanged);
+	}
 }
 
 void AShooterPlayerState::RegisterPlayerWithSession(bool bWasFromInvite)
@@ -91,6 +109,25 @@ void AShooterPlayerState::CopyProperties(APlayerState* PlayerState)
 	{
 		ShooterPlayer->TeamNumber = TeamNumber;
 	}	
+}
+
+UAbilitySystemComponent * AShooterPlayerState::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
+UShooterAttributeSet * AShooterPlayerState::GetAttributeSet() const
+{
+	return AttributeSet;
+}
+
+void AShooterPlayerState::ShowAbilityConfirmCancelText(bool ShowText)
+{
+}
+
+float AShooterPlayerState::GetTeleportLocation() const
+{
+	return AttributeSet->GetTeleportLocation();
 }
 
 void AShooterPlayerState::UpdateTeamColors()
@@ -167,6 +204,29 @@ void AShooterPlayerState::ScorePoints(int32 Points)
 	}
 
 	SetScore(GetScore() + Points);
+}
+
+void AShooterPlayerState::HealthChanged(const FOnAttributeChangeData & Data)
+{
+	UE_LOG(LogTemp, Log, TEXT("Health Changed!"));
+}
+
+void AShooterPlayerState::TeleportLocationChanged(const FOnAttributeChangeData & Data)
+{
+	UE_LOG(LogTemp, Log, TEXT("Teleport Location Changed!"));
+}
+
+void AShooterPlayerState::StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
+{
+	if (NewCount > 0) {
+		FGameplayTagContainer AbilityTagsToCancel;
+		AbilityTagsToCancel.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability")));
+
+		FGameplayTagContainer AbilityTagsToIgnore;
+		AbilityTagsToIgnore.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.NotCanceledByStun")));
+
+		AbilitySystemComponent->CancelAbilities(&AbilityTagsToCancel, &AbilityTagsToIgnore);
+	}
 }
 
 void AShooterPlayerState::InformAboutKill_Implementation(class AShooterPlayerState* KillerPlayerState, const UDamageType* KillerDamageType, class AShooterPlayerState* KilledPlayerState)

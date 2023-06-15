@@ -9,6 +9,11 @@
 #include "Animation/AnimInstance.h"
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
+#include "Player/Abilities/ShooterAbilitySystemComponent.h"
+#include "Player/Abilities/AttributeSets/ShooterAttributeSet.h"
+#include "Player/Abilities/ShooterGameplayAbility.h"
+#include <GameplayEffectTypes.h>
+#include "..\..\Public\Player\ShooterCharacter.h"
 
 static int32 NetVisualizeRelevancyTestPoints = 0;
 FAutoConsoleVariableRef CVarNetVisualizeRelevancyTestPoints(
@@ -58,6 +63,10 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
+	//custom sounds
+	static ConstructorHelpers::FObjectFinder<USoundCue> AbilitySoundTeleportOb(TEXT("/Game/Sounds/Abilities/SCue_Ability_Teleport.SCue_Ability_Teleport"));
+	AbilitySoundTeleport = AbilitySoundTeleportOb.Object;
+
 	TargetingSpeedModifier = 0.5f;
 	bIsTargeting = false;
 	RunningSpeedModifier = 1.5f;
@@ -67,6 +76,16 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+	
+	//abilities
+	DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
+	EffectRemoveDeadTag = FGameplayTag::RequestGameplayTag(FName("State.RemoveDead"));
+
+	//AIControllerClass = AShooterAIController::StaticClass();
+
+	TeleportDistance = 1000.f; //about 10 meters
+	TeleportCooldown = 1.5f; //1.5 seconds cooldown
+	bTeleportInCooldown = false;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -130,6 +149,22 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 {
 	Super::PossessedBy(InController);
 
+	AShooterPlayerState* PS = GetPlayerState<AShooterPlayerState>();
+	if (PS) {
+		InitializeAbilitySystem(PS);
+
+		AddStartupEffects();
+
+		AddShooterAbilities();
+
+		InitializeAttributes();
+
+		AttributeSet = PS->GetAttributeSet();
+		AbilitySystemComponent->SetTagMapCount(DeadTag, 0);
+
+		SetTeleportLocation(0.f);
+	}
+
 	// [server] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	UpdateTeamColorsAllMIDs();
 }
@@ -137,6 +172,14 @@ void AShooterCharacter::PossessedBy(class AController* InController)
 void AShooterCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
+
+	AShooterPlayerState* PS = GetPlayerState<AShooterPlayerState>();
+	if (PS) {
+		InitializeAbilitySystem(PS);
+		InitializeAttributes();
+
+		BindASCInput();
+	}
 
 	// [client] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	if (GetPlayerState() != NULL)
@@ -367,6 +410,18 @@ void AShooterCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& 
 
 	// remove all weapons
 	DestroyInventory();
+
+	//remove abilities
+	RemoveAbilities();
+
+	//remove ability tags
+	if (AbilitySystemComponent) {
+		AbilitySystemComponent->CancelAbilities();
+
+		FGameplayTagContainer TagsToRemove;
+		TagsToRemove.AddTag(EffectRemoveDeadTag);
+		AbilitySystemComponent->AddLooseGameplayTag(DeadTag);
+	}
 
 	// switch back to 3rd person view
 	UpdatePawnMeshes();
@@ -770,6 +825,13 @@ void AShooterCharacter::SetRunning(bool bNewRunning, bool bToggle)
 	}
 }
 
+void AShooterCharacter::SetTeleportLocation(float TeleportLocation)
+{
+	if (AttributeSet) {
+		AttributeSet->SetTeleportLocation(TeleportLocation);
+	}
+}
+
 bool AShooterCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle)
 {
 	return true;
@@ -884,6 +946,22 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AShooterCharacter::OnStartRunning);
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
+
+	//Abilities
+	BindASCInput();
+
+	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AShooterCharacter::OnTeleport);
+}
+
+void AShooterCharacter::BindASCInput()
+{
+	if (!bASCInputBound && AbilitySystemComponent && IsValid(InputComponent)) {
+		AbilitySystemComponent->BindAbilityActivationToInputComponent(
+			InputComponent,
+			FGameplayAbilityInputBinds(FString("Confirm"), FString("Cancel"), FString("ShooterAbilityID"), static_cast<int32>(ShooterAbilityID::Confirm), static_cast<int32>(ShooterAbilityID::Cancel))
+		);
+		bASCInputBound = true;
+	}
 }
 
 
@@ -946,6 +1024,227 @@ void AShooterCharacter::LookUpAtRate(float Val)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Val * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+UAbilitySystemComponent * AShooterCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;// .Get();
+}
+
+void AShooterCharacter::RemoveAbilities()
+{
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent || !AbilitySystemComponent->AbilitiesGiven) {
+		return;
+	}
+	
+	TArray<FGameplayAbilitySpecHandle> AbilitiesToRemove;
+	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities()) {
+		if ((Spec.SourceObject == this) && ShooterAbilities.Contains(Spec.Ability->GetClass())) {
+			AbilitiesToRemove.Add(Spec.Handle);
+		}
+	}
+
+	for (int32 i = 0; i < AbilitiesToRemove.Num(); i++) {
+		AbilitySystemComponent->ClearAbility(AbilitiesToRemove[i]);
+	}
+
+	AbilitySystemComponent->AbilitiesGiven = false;
+}
+
+void AShooterCharacter::OnTeleport()
+{
+	AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(Controller);
+	if (MyPC && MyPC->IsGameInputAllowed()) {
+		HandleTeleport();
+	}
+}
+
+void AShooterCharacter::HandleTeleport()
+{
+	if (IsLocallyControlled()) {
+		Teleport();
+	}
+	if (GetLocalRole() < ROLE_Authority) {
+		ServerTeleport();
+	}
+}
+
+bool AShooterCharacter::ServerTeleport_Validate()
+{
+	//chekt that it is almost 10m from previous location
+	return true;
+}
+
+void AShooterCharacter::ServerTeleport_Implementation()
+{
+	Teleport();
+}
+
+void AShooterCharacter::Teleport()
+{
+	if (!bTeleportInCooldown) {
+		FVector CLocation = GetActorLocation();
+
+		FRotator CRotation = GetActorRotation();
+		FVector CDirection = CRotation.Vector();
+
+		FVector TargetLocation = CLocation + (CDirection * TeleportDistance);
+
+		//check target location validity
+
+		//obtain set of traces created within the base teleport distance to predict the best target location
+		FCollisionQueryParams TraceParams(FName(TEXT("TeleportTrace")), true, this);
+		FCollisionShape TraceShape = FCollisionShape::MakeSphere(TeleportDistance);
+		TraceParams.bTraceComplex = true;
+		TraceParams.AddIgnoredActor(this);
+		//TArray<FHitResult> HitResults;
+		FHitResult HitResult;
+		//GetWorld()->SweepMultiByObjectType(HitResults, CLocation, TargetLocation, FQuat::Identity, FCollisionObjectQueryParams::AllObjects, TraceShape, TraceParams);
+
+		//find best position through set of traces
+		FVector BestLocation = TargetLocation;
+		float BestDistance = TeleportDistance;
+
+		bool bTeleported = false;
+
+		//if my target position is available i can teleport there
+		UE_LOG(LogTemp, Log, TEXT("Target location: X=%f, Y=%f, Z=%f"), TargetLocation.X, TargetLocation.Y, TargetLocation.Z);
+		if (!TeleportTo(TargetLocation, CRotation)) {
+			DrawDebugPoint(GetWorld(), TargetLocation, 8.0f, FColor::White, false, 40.0f, 0);
+			//ActorGetDistanceToCollision(TargetLocation, ECC_WorldStatic, BestLocation); //retirns nearest point to this character from TargetLocation
+
+			///solution 1
+			//setting up navigation system to find the nearest location for shooting character outside of a collision shape
+			/*UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+			FNavLocation ProjectedLocation;
+			if (NavSys->ProjectPointToNavigation(TargetLocation, ProjectedLocation)) {
+				//play particle effect and sound
+				//...
+
+				SetActorLocation(ProjectedLocation.Location);
+			}
+			else {
+				//SetActorLocation(TargetLocation);
+			}*/
+
+			///solution 2
+			// Check for collisions in all directions in a sphere
+			/*int NumDirections = 256;
+			//float TurnFraction = 0.618033; //golden ratio
+			//float TurnFraction = 0.1;
+			float TurnFraction = (1 + FMath::Sqrt(5)) / 2; //Golden Ratio
+			//float Angle;
+			float Inclination;
+			float Azimuth;
+			FVector EndLocation;
+			//FVector Direction;
+			float DistanceToResult;
+			for (int i = 0; i < NumDirections; i++) {
+				// Calculate the direction to check in
+				//Angle = (360.0f / NumDirections) * i;
+
+				//Inclination = PI / 2 - FMath::DegreesToRadians(Angle);
+				//Azimuth = FMath::DegreesToRadians(Angle);
+
+				float t = i / (NumDirections - 1.0f);
+				Inclination = FMath::Acos(1 - 2 * t);
+				Azimuth = 2.0f * PI * TurnFraction * i;
+
+				//calculate end location of the sphere trace
+				EndLocation.X = FMath::Sin(Inclination) * FMath::Cos(Azimuth);
+				EndLocation.Y = FMath::Sin(Inclination) * FMath::Sin(Azimuth);
+				EndLocation.Z = FMath::Cos(Inclination);
+
+				EndLocation = EndLocation * (TeleportDistance) + TargetLocation;
+
+				//DEBUG
+				//UE_LOG(LogTemp, Log, TEXT("%f, %f, %f"), EndLocation.X, EndLocation.Y, EndLocation.Z);
+				//Direction = FRotator(0.0f, Angle, 0.0f).Vector();
+				//DrawDebugLine(GetWorld(), TargetLocation, EndLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+				DrawDebugPoint(GetWorld(), EndLocation, 8.0f, FColor::Red, false, 40.0f, 0);
+
+				//perform the sphere trace
+				//GetWorld()->SweepSingleByChannel(HitResult, TargetLocation, EndLocation, FQuat::Identity, ECC_WorldDynamic, TraceShape, TraceParams);
+				GetWorld()->SweepMultiByChannel(HitResults, TargetLocation, EndLocation, FQuat::Identity, ECC_Visibility, TraceShape, TraceParams);
+
+				//find best valid distance based on original distance
+				for (const FHitResult& Result : HitResults) {
+					if (Result.bBlockingHit) {
+						DistanceToResult = (Result.Location - TargetLocation).Size();
+
+						///se distanza è 0 memorizzo elemento colpito
+
+						///prendo in considerazione punto più distante impattato con elemento colpito
+
+						if (DistanceToResult > 0 && DistanceToResult < BestDistance) {
+							UE_LOG(LogTemp, Log, TEXT("%f"), DistanceToResult);
+							BestLocation = Result.Location;
+							BestDistance = DistanceToResult;
+						}
+					}
+					DrawDebugLine(GetWorld(), TargetLocation, BestLocation, FColor::Blue, false, 40.0f, 0, 2.5f);
+					DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Blue, false, 40.0f, 0);
+				}
+			}*/
+
+			///solution 3
+
+			///controllo se in linea di visione ho ostacoli, mi fermo alla prima collisione o fino a distanza di target
+			///e imposto valore ottenuto in best location
+
+			///controllo se dal punto raggiunto, puntando verso il basso ci sono collisioni, mi fermo all'altezza del
+			///target iniziale o alla prima collsione riscotrata
+
+			//ottengo punto e direzione di vista
+			FVector TEyePos;
+			GetActorEyesViewPoint(TEyePos, CRotation);
+			BestLocation.Z = TEyePos.Z;
+			//controllo collisioni fino a proiezione di target
+			DrawDebugPoint(GetWorld(), TEyePos, 8.0f, FColor::Red, false, 40.0f, 0);
+			DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Blue, false, 40.0f, 0);
+			GetWorld()->LineTraceSingleByChannel(HitResult, TEyePos, BestLocation, ECC_WorldStatic, TraceParams);
+			//se intercetto una collisione, sovrascrivo best location e nuova coordinata target
+			if (HitResult.bBlockingHit) {
+				BestLocation = HitResult.Location;
+				DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
+				TargetLocation.X = BestLocation.X;
+				TargetLocation.Y = BestLocation.Y;
+				DrawDebugPoint(GetWorld(), TargetLocation, 8.0f, FColor::Cyan, false, 40.0f, 0);
+			}
+			//controllo collisioni in basso verso target
+			DrawDebugLine(GetWorld(), TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+			GetWorld()->LineTraceSingleByChannel(HitResult, BestLocation, TargetLocation, ECC_WorldStatic, TraceParams);
+			BestLocation = TargetLocation;
+			//aggiorno best location
+			if (HitResult.bBlockingHit) {
+				BestLocation = HitResult.Location;
+				DrawDebugPoint(GetWorld(), BestLocation, 8.0f, FColor::Green, false, 40.0f, 0);
+			}
+			TEyePos.X = BestLocation.X;
+			TEyePos.Y = BestLocation.Y;
+			DrawDebugLine(GetWorld(), TEyePos, BestLocation, FColor::Red, false, 40.0f, 0, 2.5f);
+
+			//effettuo il teletrasporto
+			UE_LOG(LogTemp, Log, TEXT("Best location: X=%f, Y=%f, Z=%f"), BestLocation.X, BestLocation.Y, BestLocation.Z);
+			if (TeleportTo(BestLocation, CRotation)) {
+				bTeleported = true;
+			}
+		}else{
+			bTeleported = true;
+		}
+
+		//set ability cooldown
+		if (bTeleported) {
+			bTeleportInCooldown = true;
+			UGameplayStatics::SpawnSoundAtLocation(this, AbilitySoundTeleport, BestLocation);
+			GetWorld()->GetTimerManager().SetTimer(TeleportCooldownTimer, this, &AShooterCharacter::AbilityTeleportReset, TeleportCooldown, false);
+		}
+	}
+}
+
+void AShooterCharacter::AbilityTeleportReset()
+{
+	bTeleportInCooldown = false;
 }
 
 void AShooterCharacter::OnStartFire()
@@ -1285,6 +1584,25 @@ bool AShooterCharacter::IsFirstPerson() const
 	return IsAlive() && Controller && Controller->IsLocalPlayerController();
 }
 
+float AShooterCharacter::GetTeleportLocation() const
+{
+	if (AttributeSet) {
+		return AttributeSet->GetTeleportLocation();
+	}
+
+	return 0.f;
+}
+
+bool AShooterCharacter::IsTeleportInCooldown() const
+{
+	return bTeleportInCooldown;
+}
+
+FTimerHandle AShooterCharacter::GetTeleportTimer() const
+{
+	return TeleportCooldownTimer;
+}
+
 int32 AShooterCharacter::GetMaxHealth() const
 {
 	return GetClass()->GetDefaultObject<AShooterCharacter>()->Health;
@@ -1306,6 +1624,72 @@ void AShooterCharacter::UpdateTeamColorsAllMIDs()
 	{
 		UpdateTeamColors(MeshMIDs[i]);
 	}
+}
+
+void AShooterCharacter::AddShooterAbilities()
+{
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent || AbilitySystemComponent->AbilitiesGiven) {
+		return;
+	}
+
+	for (TSubclassOf<UShooterGameplayAbility>& StartupAbility : ShooterAbilities) {
+		AbilitySystemComponent->GiveAbility(
+			FGameplayAbilitySpec(
+				StartupAbility, //ability reference
+				1, //ability level
+				static_cast<int32>(StartupAbility.GetDefaultObject()->AbilityInputID), //ability input id
+				this
+			)
+		);
+	}
+
+	AbilitySystemComponent->AbilitiesGiven = true;
+}
+
+void AShooterCharacter::InitializeAttributes()
+{
+	if (!AbilitySystemComponent) {
+		return;
+	}
+
+	if (!DefaultAttributeEffect) {
+		UE_LOG(LogTemp, Error, TEXT("%s() Missing DefaultAttributeEffect for %s. Please fill in the character's Blueprint."), *FString(__FUNCTION__), *GetName());
+		return;
+	}
+
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeEffect, 1, EffectContext);
+	if (SpecHandle.IsValid()) {
+		//FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), AbilitySystemComponent);
+		FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+}
+
+void AShooterCharacter::AddStartupEffects()
+{
+	if (GetLocalRole() != ROLE_Authority || !AbilitySystemComponent || AbilitySystemComponent->StartupEffectsApplied) {
+		return;
+	}
+
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+
+	for (TSubclassOf<UGameplayEffect> GE : StartupEffects) {
+		FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(GE, 1, EffectContext);
+		if (NewHandle.IsValid()) {
+			FActiveGameplayEffectHandle GameplayEffect = AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*NewHandle.Data.Get(), AbilitySystemComponent);
+		}
+	}
+
+	AbilitySystemComponent->StartupEffectsApplied = true;
+}
+
+void AShooterCharacter::InitializeAbilitySystem(AShooterPlayerState* PS)
+{
+	AbilitySystemComponent = Cast<UShooterAbilitySystemComponent>(PS->GetAbilitySystemComponent());
+	AbilitySystemComponent->InitAbilityActorInfo(PS, this);
 }
 
 void AShooterCharacter::BuildPauseReplicationCheckPoints(TArray<FVector>& RelevancyCheckPoints)

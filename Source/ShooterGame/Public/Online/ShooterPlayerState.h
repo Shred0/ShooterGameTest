@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "AbilitySystemInterface.h"
+#include "GameplayEffectTypes.h"
 #include "ShooterPlayerState.generated.h"
 
 UCLASS()
-class AShooterPlayerState : public APlayerState
+class AShooterPlayerState : public APlayerState, public IAbilitySystemInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -86,6 +88,17 @@ class AShooterPlayerState : public APlayerState
 	void SetMatchId(const FString& CurrentMatchId);
 
 	virtual void CopyProperties(class APlayerState* PlayerState) override;
+
+	//abilities
+	class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	class UShooterAttributeSet* GetAttributeSet() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Shooter|PlayerState|UI")
+	void ShowAbilityConfirmCancelText(bool ShowText);
+
+	UFUNCTION(BlueprintCallable, Category = "Shooter|PlayerState|Attributes")
+	float GetTeleportLocation() const;
+
 protected:
 
 	/** Set the mesh colors based on the current teamnum variable */
@@ -121,4 +134,22 @@ protected:
 
 	/** helper for scoring points */
 	void ScorePoints(int32 Points);
+
+	//abilities
+	UPROPERTY()
+	class UShooterAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY()
+	class UShooterAttributeSet* AttributeSet;
+
+	FGameplayTag DeadTag;
+
+	//FDelegateHandle 
+	FDelegateHandle HealthChangedDelegateHandle;
+	FDelegateHandle TeleportLocationChangedDelegateHandle;
+
+	virtual void HealthChanged(const FOnAttributeChangeData& Data);
+	virtual void TeleportLocationChanged(const FOnAttributeChangeData& Data);
+
+	virtual void StunTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 };

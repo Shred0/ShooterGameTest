@@ -198,6 +198,14 @@ protected:
 	UPROPERTY()
 	FCanvasIcon SecondaryWeapBg;
 
+	/** Teleport ability icon */
+	UPROPERTY()
+	FCanvasIcon AbilityIconTeleport;
+
+	/** Topping layer for abilities in cooldown */
+	UPROPERTY()
+	FCanvasIcon AbilityIconCooldownLayer;
+
 	/** Crosshair icons (left, top, right, bottom and center). */
 	UPROPERTY()
 	FCanvasIcon Crosshair[5];
@@ -271,6 +279,10 @@ protected:
 	UPROPERTY()
 	UTexture2D* HUDAssets02Texture;
 
+	/** Texture for new HUD elements. */
+	UPROPERTY()
+	UTexture2D* HUDAddedAsset;
+
 	/** Overlay shown when health is low. */
 	UPROPERTY()
 	UTexture2D* LowHealthOverlayTexture;
@@ -334,6 +346,9 @@ protected:
 
 	/** Draws match timer and player position. */
 	void DrawMatchTimerAndPosition();
+
+	/** Draws Teleport ability icon. */
+	void DrawAbilityIconTeleport();
 
 	/** Draws weapon crosshair. */
 	void DrawCrosshair();

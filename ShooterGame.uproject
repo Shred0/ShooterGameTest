@@ -7,7 +7,10 @@
 		{
 			"Name": "ShooterGame",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"GameplayAbilities"
+			]
 		},
 		{
 			"Name": "ShooterGameLoadingScreen",
@@ -91,6 +94,10 @@
 		},
 		{
 			"Name": "Reflex",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayAbilities",
 			"Enabled": true
 		}
 	],

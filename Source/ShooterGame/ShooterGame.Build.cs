@@ -50,7 +50,10 @@ public class ShooterGame : ModuleRules
 				"PakFile",
 				"RHI",
 				"PhysicsCore",
-				"GameplayCameras"
+				"GameplayCameras",
+                "GameplayAbilities",
+                "GameplayTags",
+                "GameplayTasks"
 			}
 		);
 

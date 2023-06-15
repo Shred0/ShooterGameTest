@@ -3,13 +3,19 @@
 #pragma once
 
 #include "ShooterTypes.h"
+#include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
+#include <GameplayEffectTypes.h>
+#include "Player/Abilities/ShooterAbilitySystemComponent.h"
+#include "Player/Abilities/AttributeSets/ShooterAttributeSet.h"
+#include "Player/Abilities/ShooterGameplayAbility.h"
 #include "ShooterCharacter.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnShooterCharacterEquipWeapon, AShooterCharacter*, AShooterWeapon* /* new */);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnShooterCharacterUnEquipWeapon, AShooterCharacter*, AShooterWeapon* /* old */);
 
 UCLASS(Abstract)
-class AShooterCharacter : public ACharacter
+class AShooterCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -113,6 +119,11 @@ class AShooterCharacter : public ACharacter
 	/** [server + local] change running state */
 	void SetRunning(bool bNewRunning, bool bToggle);
 
+	////////////////////
+	// Abilities
+
+	virtual void SetTeleportLocation(float TeleportLocation);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Animations
 
@@ -130,6 +141,9 @@ class AShooterCharacter : public ACharacter
 
 	/** setup pawn specific input handlers */
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+
+	bool bASCInputBound = false;
+	void BindASCInput();
 
 	/**
 	* Handle analog trigger for firing
@@ -164,6 +178,18 @@ class AShooterCharacter : public ACharacter
 
 	/* Frame rate independent lookup */
 	void LookUpAtRate(float Val);
+
+	/* Implement abilities */
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual void RemoveAbilities();
+
+	/* action binding called to teleport*/
+	void OnTeleport();
+
+	/* [server + local] Teleport */
+	void HandleTeleport();
+	void Teleport();
+	void AbilityTeleportReset();
 
 	/** player pressed start fire action */
 	void OnStartFire();
@@ -254,6 +280,18 @@ class AShooterCharacter : public ACharacter
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 	virtual bool IsFirstPerson() const;
 
+	/* Get teleport position */
+	UFUNCTION(BlueprintCallable, Category = "Ability|Teleport")
+	float GetTeleportLocation() const;
+
+	/** get cooldown state for telepot ability */
+	UFUNCTION(BlueprintCallable, Category = "Ability|Teleport")
+	bool IsTeleportInCooldown() const;
+
+	/** get cooldown timer for telepot ability */
+	UFUNCTION(BlueprintCallable, Category = "Ability|Teleport")
+	FTimerHandle GetTeleportTimer() const;
+
 	/** get max health */
 	int32 GetMaxHealth() const;
 
@@ -285,7 +323,7 @@ protected:
 
 	/** default inventory list */
 	UPROPERTY(EditDefaultsOnly, Category = Inventory)
-	TArray<TSubclassOf<class AShooterWeapon> > DefaultInventoryClasses;
+	TArray<TSubclassOf<class AShooterWeapon>> DefaultInventoryClasses;
 
 	/** weapons in inventory */
 	UPROPERTY(Transient, Replicated)
@@ -320,6 +358,47 @@ protected:
 
 	/** from gamepad running is toggled */
 	uint8 bWantsToRunToggled : 1;
+
+	/* Ability System */
+	/*UPROPERTY(BlueprintReadOnly, Category = "Abilities|SystemComponent")
+	TWeakObjectPtr<UShooterAbilitySystemComponent> AbilitySystemComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "Abilities|AtributeSet")
+	TWeakObjectPtr<UShooterAttributeSet> AttributeSet;*/
+
+	UPROPERTY(BlueprintReadOnly, Category = "Abilities|SystemComponent")
+	class UShooterAbilitySystemComponent* AbilitySystemComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "Abilities|AtributeSet")
+	class UShooterAttributeSet* AttributeSet;
+
+	FGameplayTag DeadTag;
+	FGameplayTag EffectRemoveDeadTag;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities")
+	TArray<TSubclassOf<UShooterGameplayAbility>> ShooterAbilities;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities|Attributes")
+	TSubclassOf<UGameplayEffect> DefaultAttributeEffect;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Abilities|Effects")
+	TArray<TSubclassOf<UGameplayEffect>> StartupEffects;
+
+	virtual void AddShooterAbilities();
+	virtual void InitializeAttributes();
+	virtual void AddStartupEffects();
+
+	void InitializeAbilitySystem(AShooterPlayerState* PS);
+
+	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = Mobility)
+	float TeleportDistance;
+
+	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+	float TeleportCooldown;
+
+	UPROPERTY(Transient, Replicated, EditdefaultsOnly, Category = Mobility)
+	bool bTeleportInCooldown;
+
+	UPROPERTY(EditdefaultsOnly, Category = Mobility)
+	FTimerHandle TeleportCooldownTimer;
 
 	/** current firing state */
 	uint8 bWantsToFire : 1;
@@ -368,6 +447,10 @@ protected:
 	/** sound played when targeting state changes */
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)
 	USoundCue* TargetingSound;
+
+	/** sound played when teleported */
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+	USoundCue* AbilitySoundTeleport;
 
 	/** used to manipulate with run loop sound */
 	UPROPERTY()
@@ -466,6 +549,10 @@ protected:
 
 	/** [server] remove all weapons from inventory and destroy them */
 	void DestroyInventory();
+
+	/** update targeting state */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerTeleport();
 
 	/** equip weapon */
 	UFUNCTION(reliable, server, WithValidation)
